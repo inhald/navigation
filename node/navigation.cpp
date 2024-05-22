@@ -8,6 +8,8 @@
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/Imu.h>
 #include <std_msgs/String.h>
+#include <visualization_msgs/Marker.h>
+#include <ackermann_msgs/AckermannDriveStamped.h>
 
 #include <fstream>
 
@@ -127,6 +129,8 @@ class GapBarrier
         //Publiisher and subscriber data members
 
         ros::Publisher marker_pub;
+        //declare marker object
+        ros::Publiisher drive_pub;
 
 
 
@@ -138,7 +142,7 @@ class GapBarrier
             ros::param::get("~cv_ranges_topic", cv_ranges_topic);
             ros::param::get("~depth_index_topic",depth_index_topic);
             ros::param::get("~depth_points_topic", depth_points_topic);
-            ros::param::get("~scan_topic". lidarscan_topic);
+            ros::param::get("~scan_topic", lidarscan_topic);
             ros::param::get("~nav_drive_topic",drive_topic);
             ros::param::get("~odom_topic", odom_topic);
             ros::param::get("~mux_topic", mux_topic);
@@ -157,7 +161,7 @@ class GapBarrier
             ros::param::get("~min_cv_range", min_cv_range);
             ros::param::get("~max_cv_range", max_cv_range);
             ros::param::get("~cv_distance_to_lidar", cv_distance_to_lidar);
-            ros::param::get("~num_cv_sample_rows". num_cv_sample_rows);
+            ros::param::get("~num_cv_sample_rows", num_cv_sample_rows);
             ros::param::get("~num_cv_sample_cols",num_cv_sample_cols);
 
             ros::param::get("~cv_ground_angle", cv_ground_angle);
@@ -185,7 +189,7 @@ class GapBarrier
             ros::param::get("~right_beam_angle",right_beam_angle);
             ros::param::get("~left_beam_angle",left_beam_angle);
             ros::param::get("~heading_beam_angle",heading_beam_angle);
-            ros::pararm::get("~stop_distance",stop_distance);
+            ros::param::get("~stop_distance",stop_distance);
             ros::param::get("~stop_distance_decay",stop_distance_decay);
             ros::param::get("~velocity_zero",velocity_zero);
             ros::param::get("~optim_mode",optim_mode);
@@ -212,7 +216,7 @@ class GapBarrier
             drive_state="normal";
             stopped_time=0;
             yaw0=0;
-            dtheta=0.0
+            dtheta=0.0;
             yaw=0.0;
             imu_roll=0;
             imu_pitch=0;
@@ -223,10 +227,21 @@ class GapBarrier
             time_ref=0.0;
             //DO: add wr0 and wl0 definitons using numpy equivalent array class
 
-            marker_pub= nodeHandler.advertise<Marker>("wall_markers", 2); //check msg syntax
+            //DO: add subscriber intialzations
+
+            marker_pub= nodeHandler.advertise<visualization_msgs::Marker>("wall_markers", 2); // <msg type>("topic name", queue size)
+
+            // DO: intialize Marker object
+
+            drive_pub= nodeHandler.advertise<ackermann_msgs::AckermannDriveStamped<(drive_topic, 1);
             
+
+            if(use_camera)
+            {
+
+            }
         }
 
 
 
-}
+};
