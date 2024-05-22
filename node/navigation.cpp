@@ -19,7 +19,7 @@
 //pi is referred to as M_PI
 #include <string>
 
-#include <chrono> //time library
+#include <ctime> 
 
 
 class GapBarrier
@@ -121,6 +121,12 @@ class GapBarrier
         // wl0
         //wr0
 
+        //rosnode private handler to create publishers and subscribers
+        ros::NodeHandle nodeHandler;
+
+        //Publiisher and subscriber data members
+
+        ros::Publisher marker_pub;
 
 
 
@@ -191,7 +197,7 @@ class GapBarrier
             ls_ang_inc=2*M_PI/scan_beams;
             nav_active=0;
             
-            //add camera setup
+            //DO: add camera setup
 
 
             //Lidar FOV definition
@@ -207,13 +213,17 @@ class GapBarrier
             stopped_time=0;
             yaw0=0;
             dtheta=0.0
-            yaw=0;
+            yaw=0.0;
             imu_roll=0;
             imu_pitch=0;
             imu_yaw=0;
-            //t
+            //t  rospy.Time.from_sec(time.time())
+            //self.current_Time=t.to_sec()
+            prev_time=current_time;
+            time_ref=0.0;
+            //DO: add wr0 and wl0 definitons using numpy equivalent array class
 
-            
+            marker_pub= nodeHandler.advertise<Marker>("wall_markers", 2); //check msg syntax
             
         }
 
