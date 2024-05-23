@@ -119,20 +119,26 @@ class GapBarrier
         double current_time;
         double prev_time;
         double time_ref;
-        //add using numpy equivalent
+        //DO: add using numpy equivalent data type definitions for
         // wl0
         //wr0
 
-        //rosnode private handler to create publishers and subscribers
+        //rosnode handler used to create publishers and subscribers
         ros::NodeHandle nodeHandler;
 
         //Publiisher and subscriber data members
 
+        ros::Subscriber lidar;
+        ros::Subscriber odom;
+        ros::Subscriber mux;
+        ros::Subscriber imu;
+
+
         ros::Publisher marker_pub;
-        //declare marker object
+        //DO: declare marker object
         ros::Publiisher drive_pub;
 
-
+        
 
     public:
         GapBarrier()
@@ -229,6 +235,9 @@ class GapBarrier
 
             //DO: add subscriber intialzations
 
+            lidar= nodeHandler.subscribe(lidarscan_topic,1, &lidar_callback);
+
+
             marker_pub= nodeHandler.advertise<visualization_msgs::Marker>("wall_markers", 2); // <msg type>("topic name", queue size)
 
             // DO: intialize Marker object
@@ -244,4 +253,22 @@ class GapBarrier
 
 
 
+        void lidar_callback(const ) //msg type
+
+
+
 };
+
+int main(int argc, char** argv)
+{
+    ros::init(argc, argv, "navigation"); //command line arguments + node name
+
+    while(ros::ok())
+    {
+    
+
+        ros::spinOnce(); //allow ROS backend to update
+    }
+
+    return 0;
+}
