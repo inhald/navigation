@@ -137,7 +137,7 @@ class GapBarrier
 
         ros::Publisher marker_pub;
         //DO: declare marker object
-        ros::Publiisher drive_pub;
+        ros::Publisher drive_pub;
 
         void imu_callback(const sensor_msgs::ImuConstPtr & data)
         {
@@ -145,7 +145,7 @@ class GapBarrier
         }
         void mux_callback(const std_msgs::Int32MultiArrayConstPtr& mux_data)
         {
-            
+            nav_active= mux_data[nav_mux_idx];
         }
         void odom_callback(const nav_msgs::OdometryConstPtr& odom_msg )
         {
@@ -254,16 +254,16 @@ class GapBarrier
 
             //DO: add subscriber intialzations
 
-            lidar= nodeHandler.subscribe(lidarscan_topic,1, &lidar_callback);
-            odom= nodeHandler.subscribe(odom_topic,1, &odom_callback);
-            mux= nodeHandler.subscribe(mux_topic,1, &mux_callback);
-            imu= nodeHandler.subscribe(imu_topic,1, &imu_callback);
+            lidar= nodeHandler.subscribe(lidarscan_topic,1, &GapBarrier::lidar_callback,this);
+            odom= nodeHandler.subscribe(odom_topic,1, &GapBarrier::odom_callback,this);
+            mux= nodeHandler.subscribe(mux_topic,1, &GapBarrier::mux_callback,this);
+            imu= nodeHandler.subscribe(imu_topic,1, &GapBarrier::imu_callback,this);
 
             marker_pub= nodeHandler.advertise<visualization_msgs::Marker>("wall_markers", 2); // <msg type>("topic name", queue size)
 
             // DO: intialize Marker object
 
-            drive_pub= nodeHandler.advertise<ackermann_msgs::AckermannDriveStamped<(drive_topic, 1);
+            drive_pub= nodeHandler.advertise<ackermann_msgs::AckermannDriveStamped>(drive_topic, 1);
             
 
             if(use_camera)
