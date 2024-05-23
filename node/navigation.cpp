@@ -1,7 +1,6 @@
 #include "ros/ros.h"
 #include <ros/package.h>
 
-#include <std_msgs/Int32MultiArray.h>
 #include <std_msgs/Bool.h>
 #include <sensor_msgs/Joy.h>
 #include <sensor_msgs/LaserScan.h>
@@ -10,6 +9,10 @@
 #include <std_msgs/String.h>
 #include <visualization_msgs/Marker.h>
 #include <ackermann_msgs/AckermannDriveStamped.h>
+#include <sensor_msgs/LaserScan.h>
+#include <nav_msgs/Odometry.h>
+#include <std_msgs/Int32MultiArray.h>
+
 
 #include <fstream>
 
@@ -236,7 +239,8 @@ class GapBarrier
             //DO: add subscriber intialzations
 
             lidar= nodeHandler.subscribe(lidarscan_topic,1, &lidar_callback);
-
+            odom= nodeHandler.subscribe(odom_topic,1, &odom_callback);
+            mux=nodeHandler.subscribe(mux_topic,1, &mux_callback)
 
             marker_pub= nodeHandler.advertise<visualization_msgs::Marker>("wall_markers", 2); // <msg type>("topic name", queue size)
 
@@ -251,9 +255,20 @@ class GapBarrier
             }
         }
 
+        void mux_callback(const std_msgs::Int32MultiArrayConstPtr& )
+        {
+            
+        }
+        void odom_callback(const nav_msgs::OdometryConstPtr& odom_msg )
+        {
+                        
+        }
 
 
-        void lidar_callback(const ) //msg type
+        void lidar_callback(const sensor_msgs::LaserScanConstPtr& data ) //msg type is Laser Scan, expecting const ptr
+        {
+            
+        }
 
 
 
