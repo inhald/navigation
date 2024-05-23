@@ -141,15 +141,22 @@ class GapBarrier
 
         void imu_callback(const sensor_msgs::ImuConstPtr & data)
         {
-            
+            double Imu_msg[4]= {data->orientation.x , data->orientation.y, data->orientation.z, data->orientation.w}; 
+            //DO euler from quaterian 
+            //imu_roll=
+            //imu_pitch=
+            //imu_yaw=
         }
         void mux_callback(const std_msgs::Int32MultiArrayConstPtr& mux_data)
         {
-            nav_active= mux_data[nav_mux_idx];
+            nav_active= mux_data->data[nav_mux_idx]; //mux data is of type std::vector<int>
         }
         void odom_callback(const nav_msgs::OdometryConstPtr& odom_msg )
         {
-                        
+            vel= odom_msg->twist->twist->linear->x; //message types nest within each other
+            //DO update yaw value once found numpy equivalent.
+
+
         }
 
 
