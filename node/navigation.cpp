@@ -12,7 +12,7 @@
 #include <sensor_msgs/Imu.h>
 
 
-#include <fstream>
+//#include <fstream>
 
 #include "f1tenth_simulator/car_state.hpp"
 #include "f1tenth_simulator/precompute.hpp"
@@ -145,7 +145,7 @@ class GapBarrier
             //DO euler from quaterian 
             //imu_roll=
             //imu_pitch=
-            //imu_yaw=
+            //imu_yaw=git 
         }
         void mux_callback(const std_msgs::Int32MultiArrayConstPtr& mux_data)
         {
@@ -153,7 +153,7 @@ class GapBarrier
         }
         void odom_callback(const nav_msgs::OdometryConstPtr& odom_msg )
         {
-            vel= odom_msg->twist->twist->linear->x; //message types nest within each other
+            vel= odom_msg->twist.twist.linear.x; //message types nest within each other
             //DO update yaw value once found numpy equivalent.
 
 
