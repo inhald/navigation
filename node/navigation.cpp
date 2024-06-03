@@ -277,6 +277,7 @@ class GapBarrier
             {
 
             }
+            
         }
         
 
@@ -286,13 +287,11 @@ class GapBarrier
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "navigation"); //command line arguments + node name
-
-    while(ros::ok())
-    {
+    wf=GapBarrier();
+    ros::Rate rate(10); //ensure node runs at 10Hz
+    //TODO convert rospy.sleep(0.1);
+    ros::spin();
+    rate.sleep(); // sleep for as long as needed to maintain 10 Hz
     
-
-        ros::spinOnce(); //allow ROS backend to update
-    }
-
     return 0;
 }
