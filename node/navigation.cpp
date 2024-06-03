@@ -151,6 +151,9 @@ class GapBarrier
         //DO: declare marker object
         ros::Publisher drive_pub;
 
+        //markers
+		visualization_msgs::Marker marker;
+
         void imu_callback(const sensor_msgs::ImuConstPtr & data)
         {
             double Imu_msg[4]= {data->orientation.x , data->orientation.y, data->orientation.z, data->orientation.w}; 
@@ -713,17 +716,20 @@ class GapBarrier
 				int line_len = 1;
 				geometry_msgs::Point p;
 				marker.points.clear();
-
-				p.x = dl*(-wl_h[0]-line_len*wl_h[1]);	p.y = dl*(-wl_h[1]+line_len*wl_h[0]);	p.z = 0; 
+				p.x = dl*(-wl_h[0]-line_len*wl_h[1]);	p.y = dl*(-wl_h[1]+line_len*wl_h[0]);	
+                p.z = 0; 
 				marker.points.push_back(p);
 
-				p.x = dl*(-wl_h[0]+line_len*wl_h[1]);	p.y = dl*(-wl_h[1]-line_len*wl_h[0]);	p.z = 0;
+				p.x = dl*(-wl_h[0]+line_len*wl_h[1]);	p.y = dl*(-wl_h[1]-line_len*wl_h[0]);	
+                p.z = 0;
 				marker.points.push_back(p);
 
-				p.x = dr*(-wr_h[0]-line_len*wr_h[1]);	p.y = dr*(-wr_h[1]+line_len*wr_h[0]);	p.z = 0;
+				p.x = dr*(-wr_h[0]-line_len*wr_h[1]);	p.y = dr*(-wr_h[1]+line_len*wr_h[0]);	
+                p.z = 0;
 				marker.points.push_back(p);
 
-				p.x = dr*(-wr_h[0]+line_len*wr_h[1]);	p.y = dr*(-wr_h[1]-line_len*wr_h[0]);	p.z = 0;
+				p.x = dr*(-wr_h[0]+line_len*wr_h[1]);	p.y = dr*(-wr_h[1]-line_len*wr_h[0]);	
+                p.z = 0;
 				marker.points.push_back(p);
 
 				p.x = 0; p.y = 0; p.z = 0;
@@ -742,6 +748,22 @@ class GapBarrier
     public:
         GapBarrier()
         {
+            //lidar init
+            drive_state = "normal";
+            ls_ang_inc = 2*M_PI/scan_beams;
+			ls_str = int(round(scan_beams*right_beam_angle/(2*M_PI)));
+			ls_end = int(round(scan_beams*left_beam_angle/(2*M_PI)));
+			ls_len_mod = ls_end-ls_str+1;
+			ls_fov = ls_len_mod*ls_ang_inc;
+			angle_cen = ls_fov/2;
+			ls_len_mod2 = 0;	
+
+
+            //walls
+            wl0 = {0.0, -1.0}; wr0 = {0.0, 1.0};
+
+
+
             ros::param::get("~depth_image_topic", depth_image_topic);
             ros::param::get("~depth_info_topic", depth_info_topic);
             ros::param::get("~cv_ranges_topic", cv_ranges_topic);
