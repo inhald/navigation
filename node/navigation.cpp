@@ -24,6 +24,7 @@
 
 #include <ctime> 
 
+#include <xtensor/xarray.hpp>
 
 class GapBarrier
 {
