@@ -104,12 +104,12 @@
 
 
   <!-- Launch realsense depth camera -->
-  <?ignore
+  
   <include file="$(find realsense2_camera)/launch/rs_camera.launch">
       <arg name="enable_color"                value="false"/>
       <arg name="enable_depth"                value="true"/>
   </include>
-  ?>
+
   <!-- Launch the mux node with the parameters from params.yaml -->
   <node pkg="f1tenth_simulator" name="mux_controller" type="mux" output="screen">
     <rosparam command="load" file="$(find f1tenth_simulator)/params.yaml"/>
