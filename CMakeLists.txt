@@ -90,10 +90,8 @@ if(DEFINED CATKIN_DEVEL_PREFIX)
   )
   set(LIBS ${LIBS} ${catkin_LIBRARIES})
   include_directories(include ${catkin_INCLUDE_DIRS}
-  	
-  
-  
-  
+    /usr/local/include/QuadProg++
+    
   
   )
 
