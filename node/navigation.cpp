@@ -31,7 +31,7 @@ class GapBarrier
     private:
     // intialization of topic names
     // There are two steps to getting parameters in roscpp, 
-    // 1) declare variable sharing same type as parameter, 2) pass global parameter name and variable to get function in order to initialize
+    // 1) declare variable 2) pass the variable and the paramater to the get function to obtain the value
 
 
         std::string depth_image_topic;        
