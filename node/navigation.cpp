@@ -215,18 +215,7 @@ class GapBarrier
 		{
 
 		}
-        void publish_lidar(std::vector<int> data2){
-
-
-			std_msgs::Int32MultiArray lidar_msg;
-			lidar_msg.data.clear();
-
-			for(int i =0; i < int(data2.size()); ++i){
-				lidar_msg.data.push_back(int(data2[i]));
-			}
-
-			lidar_pub.publish(lidar_msg);
-		}
+    
 
         std::pair <std::vector<std::vector<double>>, std::vector<double>>preprocess_lidar(std::vector<double> ranges)
 		{
@@ -932,6 +921,17 @@ class GapBarrier
 				depth_img=nodeHandler.subscribe(depth_image_topic,1, &GapBarrier::imageDepth_callback,this);
 				depth_info=nodeHandler.subscribe(depth_info_topic,1, &GapBarrier::imageDepthInfo_callback,this);
 				depth_img_confidence=nodeHandler.subscribe("/camera/confidence/image_rect_raw",1, &GapBarrier::confidenceCallback, this);
+
+				cv_ranges_msg= sensor_msgs::LaserScan(); //call constructor
+				cv_ranges_msg.header.frame_id= "laser";
+				cv_ranges_msg.angle_increment= this->ls_ang_inc; 
+				cv_ranges_msg.time_increment = 0;
+				cv_ranges_msg.range_min = 0;
+				cv_ranges_msg.range_max = this->max_lidar_range;
+				cv_ranges_msg.angle_min = 0;
+				cv_ranges_msg.angle_max = 2*M_PI;
+
+				cv_ranges_pub=nodeHandler.advertise<sensor_msgs::LaserScan>(cv_ranges_topic,1);
 
 
             }
