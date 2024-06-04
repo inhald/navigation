@@ -44,8 +44,7 @@ class GapBarrier
 {
     private:
     // intialization of topic names
-    // There are two steps to getting parameters in roscpp, 
-    // 1) declare variable 2) pass the variable and the paramater to the get function to obtain the value
+    
 
 
         std::string depth_image_topic;        
@@ -111,6 +110,14 @@ class GapBarrier
         double vel;
         double ls_ang_inc;
         int nav_active;
+		
+		//Camera Setup
+
+		cv_bridge::CvImage cv__bridge;
+		intrinsics=NULL;
+		cv_image_data = NULL;
+        cv_ranges = NULL;
+        cv_beam_indices = NULL;
 
 
 
@@ -135,9 +142,8 @@ class GapBarrier
         double current_time;
         double prev_time;
         double time_ref;
-        //DO: add using numpy equivalent data type definitions for
-        // wl0
-        //wr0
+
+		std::vector<double> wl0, wr0;
 
         //rosnode handler used to create publishers and subscribers
         ros::NodeHandle nodeHandler;
@@ -226,7 +232,8 @@ class GapBarrier
 			
 		}
 
-        std::pair<int, int> find_max_gap(std::vector<std::vector<double>> proc_ranges){
+        std::pair<int, int> find_max_gap(std::vector<std::vector<double>> proc_ranges)
+        {
 			int j =0; int str_indx = 0; int end_indx = 0; 
 			int str_indx2 = 0; int end_indx2 = 0;
 			int range_sum = 0; int range_sum_new = 0;
@@ -257,7 +264,8 @@ class GapBarrier
 			return std::make_pair(str_indx2, end_indx2);
 		}
 
-        double find_best_point(int start_i, int end_i, std::vector<std::vector<double>> proc_ranges){
+        double find_best_point(int start_i, int end_i, std::vector<std::vector<double>> proc_ranges)
+        {
 			double range_sum = 0;
 			double best_heading =0;
 
@@ -277,7 +285,8 @@ class GapBarrier
 
         void getWalls(std::vector<std::vector<double>> &obstacle_points_l, std::vector<std::vector<double>> &obstacle_points_r,
 		std::vector<double> wl0, std::vector<double> wr0, double alpha, std::vector<double> &wr, std::vector<double> &wl){
-			if(!optim_mode){
+			if(!optim_mode)
+            {
 				//right
 				quadprogpp::Matrix<double> Gr,CEr,CIr;
 				quadprogpp::Vector<double> gr0,ce0r,ci0r,xr;
@@ -752,16 +761,16 @@ class GapBarrier
             //lidar init
             drive_state = "normal";
             ls_ang_inc = 2*M_PI/scan_beams;
-			ls_str = int(round(scan_beams*right_beam_angle/(2*M_PI)));
-			ls_end = int(round(scan_beams*left_beam_angle/(2*M_PI)));
-			ls_len_mod = ls_end-ls_str+1;
-			ls_fov = ls_len_mod*ls_ang_inc;
-			angle_cen = ls_fov/2;
-			ls_len_mod2 = 0;	
+						ls_str = int(round(scan_beams*right_beam_angle/(2*M_PI)));
+						ls_end = int(round(scan_beams*left_beam_angle/(2*M_PI)));
+						ls_len_mod = ls_end-ls_str+1;
+						ls_fov = ls_len_mod*ls_ang_inc;
+						angle_cen = ls_fov/2;
+						ls_len_mod2 = 0;	
 
 
             //walls
-            wl0 = {0.0, -1.0}; wr0 = {0.0, 1.0};
+           wl0 = {0.0, -1.0}; wr0 = {0.0, 1.0};
 
 
 
@@ -828,9 +837,15 @@ class GapBarrier
             vel=0;
             ls_ang_inc=2*M_PI/scan_beams;
             nav_active=0;
+
+
             
             //DO: add camera setup
-
+			cv__bridge= cv_bridge::CvImage;
+			intrinsics=NULL;
+			cv_image_data = NULL;
+        	cv_ranges = NULL;
+        	cv_beam_indices = NULL;
 
             //Lidar FOV definition
             ls_str=int(std::round(scan_beams*right_beam_angle/(2*M_PI)));
