@@ -14,6 +14,7 @@
 #include <sensor_msgs/Imu.h>
 
 
+
 #include <stdio.h>
 #include <math.h> //cosf
 #include <cmath> //M_PI, round
@@ -22,7 +23,8 @@
 
 //CV includes
 #include <cv_bridge/cv_bridge.h>
-
+#include <sensor_msgs/Image.h>
+#include <sensor_msgs/CameraInfo.h>
 
 //#include <fstream>
 
@@ -39,6 +41,8 @@
 #include <QuadProg++.hh>
 
 #include <xtensor/xarray.hpp>
+
+
 
 class GapBarrier
 {
@@ -938,7 +942,7 @@ class GapBarrier
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "navigation"); //command line arguments + node name
-    wf=GapBarrier();
+    GapBarrier wf=GapBarrier();
     ros::Rate rate(10); //ensure node runs at 10Hz
     //TODO convert rospy.sleep(0.1);
     ros::spin();
