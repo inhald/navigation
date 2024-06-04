@@ -41,8 +41,7 @@ class GapBarrier
 {
     private:
     // intialization of topic names
-    // There are two steps to getting parameters in roscpp, 
-    // 1) declare variable 2) pass the variable and the paramater to the get function to obtain the value
+    
 
 
         std::string depth_image_topic;        
@@ -108,6 +107,14 @@ class GapBarrier
         double vel;
         double ls_ang_inc;
         int nav_active;
+		
+		//Camera Setup
+
+		cv_bridge::CvImage cv__bridge;
+		intrinsics=NULL;
+		cv_image_data = NULL;
+        cv_ranges = NULL;
+        cv_beam_indices = NULL;
 
 
 
@@ -133,13 +140,7 @@ class GapBarrier
         double prev_time;
         double time_ref;
 
-				std::vector<double> wl0, wr0;
-
-
-				
-        //DO: add using numpy equivalent data type definitions for
-        // wl0
-        //wr0
+		std::vector<double> wl0, wr0;
 
         //rosnode handler used to create publishers and subscribers
         ros::NodeHandle nodeHandler;
@@ -821,9 +822,15 @@ class GapBarrier
             vel=0;
             ls_ang_inc=2*M_PI/scan_beams;
             nav_active=0;
+
+
             
             //DO: add camera setup
-
+			cv__bridge= cv_bridge::CvImage;
+			intrinsics=NULL;
+			cv_image_data = NULL;
+        	cv_ranges = NULL;
+        	cv_beam_indices = NULL;
 
             //Lidar FOV definition
             ls_str=int(std::round(scan_beams*right_beam_angle/(2*M_PI)));
