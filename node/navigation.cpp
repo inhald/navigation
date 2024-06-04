@@ -192,8 +192,11 @@ class GapBarrier
 
         }
 
-        void publish_lidar(std::vector<int> data2)
+		void augment_camera(std::vector<double> lidar_ranges)
 		{
+
+		}
+        void publish_lidar(std::vector<int> data2){
 
 
 			std_msgs::Int32MultiArray lidar_msg;
