@@ -132,6 +132,11 @@ class GapBarrier
         double current_time;
         double prev_time;
         double time_ref;
+
+				std::vector<double> wl0, wr0;
+
+
+				
         //DO: add using numpy equivalent data type definitions for
         // wl0
         //wr0
@@ -760,7 +765,7 @@ class GapBarrier
 
 
             //walls
-            wl0 = {0.0, -1.0}; wr0 = {0.0, 1.0};
+           wl0 = {0.0, -1.0}; wr0 = {0.0, 1.0};
 
 
 
