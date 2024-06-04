@@ -160,6 +160,10 @@ class GapBarrier
         //markers
 		visualization_msgs::Marker marker;
 
+		//More Camera data members
+
+		ros::Subscriber
+
         void imu_callback(const sensor_msgs::ImuConstPtr & data)
         {
             double Imu_msg[4]= {data->orientation.x , data->orientation.y, data->orientation.z, data->orientation.w}; 
@@ -179,6 +183,10 @@ class GapBarrier
 
         }
 
+		void augment_camera(std::vector<double> lidar_ranges)
+		{
+
+		}
         void publish_lidar(std::vector<int> data2){
 
 
