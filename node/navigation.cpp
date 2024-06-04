@@ -114,10 +114,10 @@ class GapBarrier
 		//Camera Setup
 
 		cv_bridge::CvImage cv__bridge;
-		intrinsics=NULL;
-		cv_image_data = NULL;
-        cv_ranges = NULL;
-        cv_beam_indices = NULL;
+		intrinsics;
+		std::vector<int> cv_image_data;
+        // intialization commented out in py file cv_ranges = NULL;
+        //Never used in Py file :cv_beam_indices = NULL;
 
 
 
@@ -163,6 +163,16 @@ class GapBarrier
         //markers
 		visualization_msgs::Marker marker;
 
+		//More CV data members, used if use_camera is true
+
+		ros::Subscriber depth_img;
+		ros::Subscriber depth_info;
+		ros::Subscriber depth_img_confidence;
+		sensor_msgs::LaserScan cv_ranges_msg;
+
+		ros::Publisher cv_ranges_pub;
+
+
         void imu_callback(const sensor_msgs::ImuConstPtr & data)
         {
             double Imu_msg[4]= {data->orientation.x , data->orientation.y, data->orientation.z, data->orientation.w}; 
@@ -182,7 +192,8 @@ class GapBarrier
 
         }
 
-        void publish_lidar(std::vector<int> data2){
+        void publish_lidar(std::vector<int> data2)
+		{
 
 
 			std_msgs::Int32MultiArray lidar_msg;
@@ -195,7 +206,8 @@ class GapBarrier
 			lidar_pub.publish(lidar_msg);
 		}
 
-        std::pair <std::vector<std::vector<double>>, std::vector<double>>preprocess_lidar(std::vector<double> ranges){
+        std::pair <std::vector<std::vector<double>>, std::vector<double>>preprocess_lidar(std::vector<double> ranges)
+		{
 
 			std::vector<std::vector<double>> data(ls_len_mod,std::vector<double>(2));
 			std::vector<double> data2(100);
@@ -284,7 +296,8 @@ class GapBarrier
 		}
 
         void getWalls(std::vector<std::vector<double>> &obstacle_points_l, std::vector<std::vector<double>> &obstacle_points_r,
-		std::vector<double> wl0, std::vector<double> wr0, double alpha, std::vector<double> &wr, std::vector<double> &wl){
+		std::vector<double> wl0, std::vector<double> wr0, double alpha, std::vector<double> &wr, std::vector<double> &wl)
+		{
 			if(!optim_mode)
             {
 				//right
@@ -844,8 +857,8 @@ class GapBarrier
 			cv__bridge= cv_bridge::CvImage;
 			intrinsics=NULL;
 			cv_image_data = NULL;
-        	cv_ranges = NULL;
-        	cv_beam_indices = NULL;
+        	//cv_ranges = NULL;
+        	
 
             //Lidar FOV definition
             ls_str=int(std::round(scan_beams*right_beam_angle/(2*M_PI)));
@@ -886,6 +899,18 @@ class GapBarrier
 
             if(use_camera)
             {
+				/*
+				ros::Subscriber depth_img;
+				ros::Subscriber depth_info;
+				ros::Subscriber depth_img_confidence;
+				sensor_msgs::LaserScan cv_ranges_msg;
+
+				ros::Publisher cv_ranges_pub;
+				*/
+				depth_img=nodeHandler.subscribe(depth_image_topic,1, &GapBarrier::imageDepth_callback,this);
+				depth_info=nodeHandler.subscribe(depth_info_topic,1, &GapBarrier::imageDepthInfo_callback,this);
+				depth_img_confidence=nodeHandler.subscribe("/camera/confidence/image_rect_raw",1, &GapBarrier::confidenceCallback, this);
+
 
             }
             
