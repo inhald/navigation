@@ -24,6 +24,8 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 find_package(Eigen3 REQUIRED)
 find_package(xtensor CONFIG REQUIRED)
+find_package(OpenCV 4 REQUIRED)
+
 ######################################
 # Compile the library >
 ######################################
@@ -65,6 +67,8 @@ if(DEFINED CATKIN_DEVEL_PREFIX)
     tf
     interactive_markers
     visualization_msgs
+    cv_bridge
+    image_transport
 
     std_msgs
     message_generation)
@@ -85,14 +89,16 @@ if(DEFINED CATKIN_DEVEL_PREFIX)
   catkin_package(
       INCLUDE_DIRS include
       LIBRARIES ${PROJECT_NAME}
-      CATKIN_DEPENDS message_runtime
+      CATKIN_DEPENDS 
+      message_runtime
+      cv_bridge
+      image_transport    
+
       		     
   )
   set(LIBS ${LIBS} ${catkin_LIBRARIES})
-  include_directories(include ${catkin_INCLUDE_DIRS}
+  include_directories(include ${catkin_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS}
     /usr/local/include/QuadProg++
-    
-  
   )
 
 

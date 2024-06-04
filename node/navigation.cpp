@@ -20,6 +20,9 @@
 #include <sstream>
 #include <algorithm>
 
+//CV includes
+#include <cv_bridge/cv_bridge.h>
+
 
 //#include <fstream>
 
@@ -482,20 +485,6 @@ class GapBarrier
 
 		}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         void lidar_callback(const sensor_msgs::LaserScanConstPtr& data ) //msg type is Laser Scan, expecting const ptr
         {
             // ROS_INFO("hello!\n");
@@ -509,7 +498,8 @@ class GapBarrier
 
 			//pre-processing
 			std::vector<double> double_data; double value;
-			for(int i =0; i < int(data->ranges.size()); ++i){
+			for(int i =0; i < int(data->ranges.size()); ++i)
+            {
 				value = static_cast<double>(data->ranges[i]);
 				double_data.push_back(value);
 			}
@@ -547,7 +537,8 @@ class GapBarrier
 			// ROS_INFO("%s", msg.data.c_str());
 			
 
-			if(drive_state == "normal"){
+			if(drive_state == "normal")
+            {
 				int str_indx, end_indx, index_l, index_r, start_indx_l, start_indx_r; double heading_angle;
 				std::pair<int,int> max_gap = find_max_gap(proc_ranges);
 				str_indx = max_gap.first; end_indx = max_gap.second;
@@ -606,13 +597,15 @@ class GapBarrier
 
 				double x_obs, y_obs;
 
-				for(int k = 0; k < n_pts_l; ++k){
+				for(int k = 0; k < n_pts_l; ++k)
+                {
 					obs_index = (start_indx_l + k*index_l) % scan_beams;
 
 					double obs_range = static_cast<double>(data->ranges[obs_index]);
 					
 
-					if(obs_range <= max_lidar_range_opt){
+					if(obs_range <= max_lidar_range_opt)
+                    {
 
 
 						if(k_obs == 0){
@@ -635,18 +628,23 @@ class GapBarrier
 				}
 				k_obs = 0;
 
-				for(int k = 0; k < n_pts_r; ++k){
+				for(int k = 0; k < n_pts_r; ++k)
+                {
 					obs_index = (start_indx_r+k*index_r) % scan_beams;
 					double obs_range = static_cast<double>(data->ranges[obs_index]);
 
-					if(obs_range <= max_lidar_range_opt) {
-						if(k_obs == 0){
+					if(obs_range <= max_lidar_range_opt) 
+                    {
+						if(k_obs == 0)
+                        {
 							obstacle_points_r[0] = {-obs_range*cos(mod_angle_br+k*index_r*data->angle_increment), -obs_range*sin(mod_angle_br+k*index_r*data->angle_increment)};
 						}
-						else if(k_obs == 1){
+						else if(k_obs == 1)
+                        {
 							obstacle_points_r[1] = {-obs_range*cos(mod_angle_br+k*index_r*data->angle_increment),-obs_range*sin(mod_angle_br+k*index_r*data->angle_increment)};
 						}
-						else{
+						else
+                        {
 							x_obs = -obs_range*cos(mod_angle_br+k*index_r*data->angle_increment);
 							y_obs = -obs_range*sin(mod_angle_br+k*index_r*data->angle_increment);
 
@@ -681,7 +679,8 @@ class GapBarrier
 				double wr_dot, wl_dot; 
 				wr_dot = wl_dot = 0;
 
-				for(int i =0; i < 2; ++i){
+				for(int i =0; i < 2; ++i)
+                {
 					wl_dot += wl[i]*wl[i];
 					wr_dot += wr[i]*wr[i];
 				}
@@ -742,7 +741,9 @@ class GapBarrier
 
 
             
+            }
         }
+
 
 
     public:
@@ -875,10 +876,7 @@ class GapBarrier
             
         }
         
-
-
 };
-
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "navigation"); //command line arguments + node name
