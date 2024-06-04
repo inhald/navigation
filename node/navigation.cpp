@@ -756,12 +756,12 @@ class GapBarrier
             //lidar init
             drive_state = "normal";
             ls_ang_inc = 2*M_PI/scan_beams;
-			ls_str = int(round(scan_beams*right_beam_angle/(2*M_PI)));
-			ls_end = int(round(scan_beams*left_beam_angle/(2*M_PI)));
-			ls_len_mod = ls_end-ls_str+1;
-			ls_fov = ls_len_mod*ls_ang_inc;
-			angle_cen = ls_fov/2;
-			ls_len_mod2 = 0;	
+						ls_str = int(round(scan_beams*right_beam_angle/(2*M_PI)));
+						ls_end = int(round(scan_beams*left_beam_angle/(2*M_PI)));
+						ls_len_mod = ls_end-ls_str+1;
+						ls_fov = ls_len_mod*ls_ang_inc;
+						angle_cen = ls_fov/2;
+						ls_len_mod2 = 0;	
 
 
             //walls
