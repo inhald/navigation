@@ -215,7 +215,6 @@ class GapBarrier
 		{
 
 		}
-    
 
         std::pair <std::vector<std::vector<double>>, std::vector<double>>preprocess_lidar(std::vector<double> ranges)
 		{
