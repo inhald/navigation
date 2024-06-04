@@ -223,7 +223,8 @@ class GapBarrier
 			
 		}
 
-        std::pair<int, int> find_max_gap(std::vector<std::vector<double>> proc_ranges){
+        std::pair<int, int> find_max_gap(std::vector<std::vector<double>> proc_ranges)
+        {
 			int j =0; int str_indx = 0; int end_indx = 0; 
 			int str_indx2 = 0; int end_indx2 = 0;
 			int range_sum = 0; int range_sum_new = 0;
@@ -254,7 +255,8 @@ class GapBarrier
 			return std::make_pair(str_indx2, end_indx2);
 		}
 
-        double find_best_point(int start_i, int end_i, std::vector<std::vector<double>> proc_ranges){
+        double find_best_point(int start_i, int end_i, std::vector<std::vector<double>> proc_ranges)
+        {
 			double range_sum = 0;
 			double best_heading =0;
 
@@ -274,7 +276,8 @@ class GapBarrier
 
         void getWalls(std::vector<std::vector<double>> &obstacle_points_l, std::vector<std::vector<double>> &obstacle_points_r,
 		std::vector<double> wl0, std::vector<double> wr0, double alpha, std::vector<double> &wr, std::vector<double> &wl){
-			if(!optim_mode){
+			if(!optim_mode)
+            {
 				//right
 				quadprogpp::Matrix<double> Gr,CEr,CIr;
 				quadprogpp::Vector<double> gr0,ce0r,ci0r,xr;
@@ -481,20 +484,6 @@ class GapBarrier
 			}
 
 		}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
         void lidar_callback(const sensor_msgs::LaserScanConstPtr& data ) //msg type is Laser Scan, expecting const ptr
         {
@@ -875,8 +864,6 @@ class GapBarrier
             
         }
         
-
-
 };
 
 int main(int argc, char** argv)
