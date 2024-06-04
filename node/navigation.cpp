@@ -187,10 +187,25 @@ class GapBarrier
         }
         void odom_callback(const nav_msgs::OdometryConstPtr& odom_msg )
         {
-            vel= odom_msg->twist.twist.linear.x; //message types nest within each other
+            vel= odom_msg->twist.twist.linear.x; //message types nested within each other
             //DO update yaw value once found numpy equivalent.
 
         }
+
+		void imageDepth_callback( const sensor_msgs::ImageConstPtr & data)
+		{
+
+		}
+
+		void imageDepthInfo_callback(const sensor_msgs::CameraInfoConstPtr & data)
+		{
+
+		}
+
+		void confidenceCallback(const sensor_msgs::ImageConstPtr & data)
+		{
+
+		}
 
 		void augment_camera(std::vector<double> lidar_ranges)
 		{
@@ -782,7 +797,7 @@ class GapBarrier
 						ls_len_mod = ls_end-ls_str+1;
 						ls_fov = ls_len_mod*ls_ang_inc;
 						angle_cen = ls_fov/2;
-						ls_len_mod2 = 0;	
+						//ls_len_mod2 = 0;	
 
 
             //walls
@@ -857,7 +872,7 @@ class GapBarrier
 
             
             //DO: add camera setup
-			cv__bridge= cv_bridge::CvImage;
+			cv__bridge= cv_bridge::CvImage();
 			intrinsics=NULL;
 			cv_image_data = NULL;
         	//cv_ranges = NULL;
