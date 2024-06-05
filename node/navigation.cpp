@@ -119,7 +119,7 @@ class GapBarrier
 		//Camera Setup
 
 		cv_bridge::CvImage cv__bridge;
-		intrinsics;
+		auto const intrinsics;
 		std::vector<int> cv_image_data;
         // intialization commented out in py file cv_ranges = NULL;
         //Never used in Py file :cv_beam_indices = NULL;
@@ -175,12 +175,16 @@ class GapBarrier
 		ros::Subscriber depth_img_confidence;
 		sensor_msgs::LaserScan cv_ranges_msg;
 
+		rs2::pipeline pipe;
+
+
+
 		ros::Publisher cv_ranges_pub;
 
 
         void imu_callback(const sensor_msgs::ImuConstPtr & data)
         {
-            double Imu_msg[4]= {data->orientation.x , data->orientation.y, data->orientation.z, data->orientation.w}; 
+            std::vector<double> Imu_msg= {data->orientation.x , data->orientation.y, data->orientation.z, data->orientation.w}; 
             //DO euler from quaterian 
             //imu_roll=
             //imu_pitch=
@@ -193,7 +197,7 @@ class GapBarrier
         void odom_callback(const nav_msgs::OdometryConstPtr& odom_msg )
         {
             vel= odom_msg->twist.twist.linear.x; //message types nested within each other
-            //DO update yaw value once found numpy equivalent.
+			yaw= 2*std::atan2(odom_msg->pose.pose.orientation.z,odom_msg->pose.pose.orientation.w);
 
         }
 
@@ -204,7 +208,7 @@ class GapBarrier
 
 		void imageDepthInfo_callback(const sensor_msgs::CameraInfoConstPtr & data)
 		{
-
+			intrinsics= pipe.get_active_profile().get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>().get_intrinsics();
 		}
 
 		void confidenceCallback(const sensor_msgs::ImageConstPtr & data)
@@ -911,14 +915,8 @@ class GapBarrier
 
             if(use_camera)
             {
-				/*
-				ros::Subscriber depth_img;
-				ros::Subscriber depth_info;
-				ros::Subscriber depth_img_confidence;
-				sensor_msgs::LaserScan cv_ranges_msg;
-
-				ros::Publisher cv_ranges_pub;
-				*/
+				pipe.start();
+				
 				depth_img=nodeHandler.subscribe(depth_image_topic,1, &GapBarrier::imageDepth_callback,this);
 				depth_info=nodeHandler.subscribe(depth_info_topic,1, &GapBarrier::imageDepthInfo_callback,this);
 				depth_img_confidence=nodeHandler.subscribe("/camera/confidence/image_rect_raw",1, &GapBarrier::confidenceCallback, this);
@@ -933,6 +931,8 @@ class GapBarrier
 				cv_ranges_msg.angle_max = 2*M_PI;
 
 				cv_ranges_pub=nodeHandler.advertise<sensor_msgs::LaserScan>(cv_ranges_topic,1);
+				
+				
 
 
             }

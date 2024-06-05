@@ -113,6 +113,7 @@ class GapBarrier:
         self.cv_image_data = None
         self.cv_ranges = None
         self.cv_beam_indices = None
+        
 
         # Define field of view (FOV) to search for obstacles 
 
