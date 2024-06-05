@@ -116,7 +116,6 @@ class GapBarrier
 		
 		//Camera Setup
 
-		cv_bridge::CvImage cv__bridge;
 		static auto const intrinsics;
 		bool intrinsics_defined;
 		sensor_msgs::Image cv_image_data;
@@ -250,7 +249,7 @@ class GapBarrier
 
 
 		}
-
+		//Realsense D435 has no confidence data
 		void confidenceCallback(const sensor_msgs::ImageConstPtr & data)
 		{
 
@@ -258,6 +257,9 @@ class GapBarrier
 
 		void augment_camera(std::vector<double> lidar_ranges)
 		{
+			auto cv_image=(cv_bridge::toCvCopy(cv_image_data cv_image_data.encoding))->image;
+			//type is cv_bridge::CvImage pointer, arrow operator will return
+			//opencv Mat 2D array .
 
 		}
 
@@ -914,7 +916,6 @@ class GapBarrier
 
             
             //DO: add camera setup
-			cv__bridge= cv_bridge::CvImage();
 			intrinsics_defined= false;
         	cv_image_data_defined= false;
         	
