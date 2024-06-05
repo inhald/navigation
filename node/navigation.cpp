@@ -23,6 +23,7 @@
 
 //CV includes
 #include <cv_bridge/cv_bridge.h>
+#include <librealsense2/rs.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/CameraInfo.h>
 
@@ -215,6 +216,7 @@ class GapBarrier
 		{
 
 		}
+
 
         std::pair <std::vector<std::vector<double>>, std::vector<double>>preprocess_lidar(std::vector<double> ranges)
 		{
