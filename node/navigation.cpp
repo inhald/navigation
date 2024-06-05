@@ -50,8 +50,6 @@ class GapBarrier
     private:
     // intialization of topic names
     
-
-
         std::string depth_image_topic;        
         std::string depth_info_topic; 
         std::string cv_ranges_topic;
@@ -120,7 +118,9 @@ class GapBarrier
 
 		cv_bridge::CvImage cv__bridge;
 		auto const intrinsics;
-		std::vector<int> cv_image_data;
+		bool intrinsics_defined;
+		sensor_msgs::Image cv_image_data;
+		bool cv_image_data_defined;
         // intialization commented out in py file cv_ranges = NULL;
         //Never used in Py file :cv_beam_indices = NULL;
 
@@ -203,12 +203,52 @@ class GapBarrier
 
 		void imageDepth_callback( const sensor_msgs::ImageConstPtr & data)
 		{
+			if(intrinsics_defined)
+			{
+				cv_image_data= *data; //dereference pointer, copy data
+				cv_image_data_defined=true;
+			}
 
 		}
 
-		void imageDepthInfo_callback(const sensor_msgs::CameraInfoConstPtr & data)
+		void imageDepthInfo_callback(const sensor_msgs::CameraInfoConstPtr & cameraInfo)
 		{
+			//intrinsics is a struct of the form:
+			/*
+			int           width; 
+			int           height
+			float         ppx;   
+			float         ppy;
+			float         fx;
+			float         fy;   
+			rs2_distortion model;
+			float coeffs[5];
+			*/
+			if(intrinsics_defined){ return; }
+
 			intrinsics= pipe.get_active_profile().get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>().get_intrinsics();
+            intrinsics.width = cameraInfo->width
+            intrinsics.height = cameraInfo->height
+            intrinsics.ppx = cameraInfo->K[2]
+            intrinsics.ppy = cameraInfo->K[5]
+            intrinsics.fx = cameraInfo->K[0]
+            intrinsics.fy = cameraInfo->K[4]
+            if (cameraInfo->distortion_model == "plumb_bob") 
+			{
+				intrinsics.model = rs2.distortion.brown_conrady;
+			}
+               
+            else if (cameraInfo->distortion_model == "equidistant")
+			{
+				intrinsics.model = rs2.distortion.kannala_brandt4;
+			}
+            for(int i=0; i<5; i++)
+			{
+				intrinsics.coeffs[i]=cameraInfo->D[i];
+			}
+			intrinsics_defined=true;
+
+
 		}
 
 		void confidenceCallback(const sensor_msgs::ImageConstPtr & data)
@@ -871,9 +911,8 @@ class GapBarrier
             
             //DO: add camera setup
 			cv__bridge= cv_bridge::CvImage();
-			intrinsics=NULL;
-			cv_image_data = NULL;
-        	//cv_ranges = NULL;
+			intrinsics_defined= false;
+        	cv_image_data_defined= false;
         	
 
             //Lidar FOV definition
