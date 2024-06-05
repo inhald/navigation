@@ -23,7 +23,7 @@
 
 //CV includes
 #include <cv_bridge/cv_bridge.h>
-#include <librealsense2/rs.h>
+#include <librealsense2/rs.hpp>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/CameraInfo.h>
 
@@ -117,7 +117,7 @@ class GapBarrier
 		//Camera Setup
 
 		cv_bridge::CvImage cv__bridge;
-		auto const intrinsics;
+		static auto const intrinsics;
 		bool intrinsics_defined;
 		sensor_msgs::Image cv_image_data;
 		bool cv_image_data_defined;
@@ -235,12 +235,12 @@ class GapBarrier
             intrinsics.fy = cameraInfo->K[4]
             if (cameraInfo->distortion_model == "plumb_bob") 
 			{
-				intrinsics.model = rs2.distortion.brown_conrady;
+				intrinsics.model = RS2_DISTORTION_BROWN_CONRADY;   
 			}
                
             else if (cameraInfo->distortion_model == "equidistant")
 			{
-				intrinsics.model = rs2.distortion.kannala_brandt4;
+				intrinsics.model = RS2_DISTORTION_KANNALA_BRANDT4;
 			}
             for(int i=0; i<5; i++)
 			{
@@ -269,7 +269,8 @@ class GapBarrier
 			std::vector<double> data2(100);
 
 			//sets distance to zero for obstacles in safe distance, and max_lidar_range for those that are far.
-			for(int i =0; i < ls_len_mod; ++i){
+			for(int i =0; i < ls_len_mod; ++i)
+			{
 				if(ranges[ls_str+i] <= safe_distance) {data[i][0] = 0; data[i][1] = i*ls_ang_inc-angle_cen;}
 				else if(ranges[ls_str+i] <= max_lidar_range) {data[i][0] = ranges[ls_str+i]; data[i][1] = i*ls_ang_inc-angle_cen;}
 				else {data[i][0] = max_lidar_range; data[i][1] = i*ls_ang_inc-angle_cen;}
@@ -280,7 +281,8 @@ class GapBarrier
 			double s_range = 0; int index1, index2;
 			
 			//moving window
-			for(int i =0; i < k1; ++i){
+			for(int i =0; i < k1; ++i)
+			{
 				s_range = 0;
 
 				for(int j =0; j < k2; ++j){
@@ -338,13 +340,15 @@ class GapBarrier
 			double best_heading =0;
 
 
-			for(int i = start_i; i <= end_i; ++i){
+			for(int i = start_i; i <= end_i; ++i)
+			{
 				range_sum += proc_ranges[i][0];
 				best_heading += proc_ranges[i][0]*proc_ranges[i][1];
 
 			}
 
-			if(range_sum != 0){
+			if(range_sum != 0)
+			{
 				best_heading /= range_sum;
 			}
 
