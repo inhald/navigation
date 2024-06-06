@@ -26,6 +26,7 @@
 #include <librealsense2/rs.hpp>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/CameraInfo.h>
+#include  <opencv2/core.hpp>
 
 //#include <fstream>
 
@@ -173,6 +174,9 @@ class GapBarrier
 		ros::Subscriber depth_info;
 		ros::Subscriber depth_img_confidence;
 		sensor_msgs::LaserScan cv_ranges_msg;
+		int cv_rows, cv_cols;
+		xtensor::xarray<int> cv_sample_rows_raw;
+		xtensor::xarray<int> cv_sample_cols_raw;
 
 		rs2::pipeline pipe;
 
@@ -247,6 +251,12 @@ class GapBarrier
 			}
 			intrinsics_defined=true;
 
+			cv_rows=intrinsics.height;
+			cv_cols=intrinsics.width;
+
+			cv_sample_rows_raw= xt::linspace<int>(100, cv_rows-1, num_cv_sample_rows);
+			cv_sample_cols_raw= xt::linspace<int>(0, cv_cols-1, num_cv_sample_cols);
+
 
 		}
 		//Realsense D435 has no confidence data
@@ -257,9 +267,70 @@ class GapBarrier
 
 		void augment_camera(std::vector<double> lidar_ranges)
 		{
-			auto cv_image=(cv_bridge::toCvCopy(cv_image_data cv_image_data.encoding))->image;
+			cv::Mat cv_image=(cv_bridge::toCvCopy(cv_image_data,cv_image_data.encoding))->image;
 			//type is cv_bridge::CvImage pointer, arrow operator will return
 			//opencv Mat 2D array .
+
+			//use to debug
+			bool assert=( (cv_rows==cv_image.rows) && (cv_cols==cv_image.cols) );
+
+
+			//1. Obtain pixel and depth
+			
+			for(int i=0 ; i < cv_sample_cols_raw.size() ; i++)
+			{
+				int col= cv_sample_cols_raw[i];
+
+				for(int j=0; j < cv_sample_rows_raw.size() ; j++)
+				{
+					int row=cv_sample_rows_raw[j];
+
+
+					int depth= (cv_image.ptr<int>(row)[col])/1000;
+
+					if(depth > max_cv_range or depth < min_cv_range)
+					{
+						continue;
+					}
+					//2 convert pixel to xyz coordinate in space
+					std::vector<double> cv_point(3); 
+					rs2::rs2_deproject_pixel_to_point(cv_point.data(), &intrinsics, (float*)&col, (float*)&row, &depth);
+
+					double cv_coordx=cv_point[0];
+					double cv_coordy=cv_point[1];
+					double cv_coordz=cv_point[2];
+
+					imu_pitch=0;
+					imu_roll=0;
+
+					double cv_coordy_s = -1*cv_coordx*std::sin(.imu_pitch) + cv_coordy*std::cos(imu_pitch)*std::cos(imu_roll) 
+					+ cv_coordz *std::cos(imu_pitch)*std::sin(imu_roll);
+
+					if( cv_coordy_s > 0.5*camera_height || cv_coordy_s < -2.5*camera_height)
+					{
+						continue;
+					}
+
+
+					//3. Overwrite Lidar Points with Camera Points taking into account dif frames of ref
+
+					double lidar_coordx = -(cv_coordz+cv_distance_to_lidar);
+                	double lidar_coordy = cv_coordx;
+					double cv_range_temp = std::pow(std::pow(lidar_coordx,2)+ std::pow(lidar_coordy,2),0.5);
+					//(coordx^2+coordy^2)^0.5
+
+					double beam_index= std::floor(scan_beams*std::atan2(lidar_coordy, lidar_coordx)/(2*M_PI));
+					lidar_range = lidar_ranges[beam_index];
+					lidar_ranges[beam_index] = std::min(lidar_range, cv_range_temp);
+
+					ros::Time current_time= ros::Time::now();
+				}
+			}
+			cv_ranges_msg.header.stamp=current_time.toSec();
+			cv_ranges_msg.ranges=lidar_ranges;
+
+			cv_ranges_pub.publish(cv_ranges_msg);
+			
 
 		}
 
