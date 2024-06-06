@@ -35,6 +35,7 @@ include_directories(include ${EIGEN_3_INCLUDE_DIRS} ${xtensor_INCLUDE_DIRS})
 file(GLOB SRC_FILES src/*.cpp)
 add_library(${PROJECT_NAME} ${SRC_FILES})
 target_link_libraries(${PROJECT_NAME} ${LIBS} xtensor)
+
 set(LIBS ${LIBS} ${PROJECT_NAME})
 
 # Install the library to CMAKE_INSTALL_PREFIX
