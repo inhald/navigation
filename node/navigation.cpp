@@ -351,11 +351,11 @@ class GapBarrier
 		}
 
 
-        std::pair <std::vector<std::vector<double>>, std::vector<double>>preprocess_lidar(std::vector<double> ranges)
+        std::pair < std::vector<std::vector<float>>, std::vector<float> >preprocess_lidar(std::vector<float> ranges)
 		{
 
-			std::vector<std::vector<double>> data(ls_len_mod,std::vector<double>(2));
-			std::vector<double> data2(100);
+			std::vector<std::vector<float>> data(ls_len_mod,std::vector<float>(2));
+			std::vector<float> data2(100);
 
 			//sets distance to zero for obstacles in safe distance, and max_lidar_range for those that are far.
 			for(int i =0; i < ls_len_mod; ++i)
@@ -367,7 +367,7 @@ class GapBarrier
 
 
 			int k1 = 100; int k2 = 40;
-			double s_range = 0; int index1, index2;
+			float s_range = 0; int index1, index2;
 			
 			//moving window
 			for(int i =0; i < k1; ++i)
@@ -384,14 +384,14 @@ class GapBarrier
 					s_range += std::min(ranges[index1], max_lidar_range) + std::min(ranges[index2], max_lidar_range);
 
 				}
-				data2[i] = static_cast<double>(s_range);
+				data2[i] = s_range;
 			}
 
 			return std::make_pair(data,data2);
 			
 		}
 
-        std::pair<int, int> find_max_gap(std::vector<std::vector<double>> proc_ranges)
+        std::pair<int, int> find_max_gap(std::vector<std::vector<float>> proc_ranges)
         {
 			int j =0; int str_indx = 0; int end_indx = 0; 
 			int str_indx2 = 0; int end_indx2 = 0;
@@ -423,10 +423,10 @@ class GapBarrier
 			return std::make_pair(str_indx2, end_indx2);
 		}
 
-        double find_best_point(int start_i, int end_i, std::vector<std::vector<double>> proc_ranges)
+        float find_best_point(int start_i, int end_i, std::vector<std::vector<float>> proc_ranges)
         {
-			double range_sum = 0;
-			double best_heading =0;
+			float range_sum = 0;
+			float best_heading =0;
 
 
 			for(int i = start_i; i <= end_i; ++i)
@@ -690,11 +690,11 @@ class GapBarrier
 			// std::transform(data->ranges.begin(), data->ranges.end(), std::back_inserter(double_data),[](float value)
 			// {return static_cast<double>(value); });
 
-			std::pair<std::vector<std::vector<double>>, std::vector<double>> lidar_preprocess = preprocess_lidar(fused_ranges);
+			std::pair<std::vector<std::vector<float>>, std::vector<float>> lidar_preprocess = preprocess_lidar(fused_ranges);
 
 
-			std::vector<std::vector<double>> proc_ranges = lidar_preprocess.first;
-			std::vector<double> mod_ranges = lidar_preprocess.second;
+			std::vector<std::vector<float>> proc_ranges = lidar_preprocess.first;
+			std::vector<float> mod_ranges = lidar_preprocess.second;
 			// publish_lidar(mod_ranges);
 
 			// std::stringstream ss; 
@@ -723,7 +723,7 @@ class GapBarrier
 
 			if(drive_state == "normal")
             {
-				int str_indx, end_indx, index_l, index_r, start_indx_l, start_indx_r; double heading_angle;
+				int str_indx, end_indx, index_l, index_r, start_indx_l, start_indx_r; float heading_angle;
 				std::pair<int,int> max_gap = find_max_gap(proc_ranges);
 				str_indx = max_gap.first; end_indx = max_gap.second;
 
@@ -739,12 +739,12 @@ class GapBarrier
 				index_l = int(round((angle_bl-angle_al)/(data->angle_increment*n_pts_l)));
 				index_r = int(round((angle_ar-angle_br)/(data->angle_increment*n_pts_r)));
 
-				double mod_angle_al = angle_al + heading_angle;
+				float mod_angle_al = angle_al + heading_angle;
 
 				if(mod_angle_al > 2*M_PI) mod_angle_al -= 2*M_PI;
 				else if (mod_angle_al < 0) mod_angle_al += 2*M_PI;
 
-				double mod_angle_br = angle_br + heading_angle;
+				float mod_angle_br = angle_br + heading_angle;
 
 				if(mod_angle_br > 2*M_PI) mod_angle_br -= 2*M_PI;
 				else if (mod_angle_br < 0) mod_angle_br += 2*M_PI;
