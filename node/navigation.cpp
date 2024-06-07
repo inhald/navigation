@@ -665,7 +665,7 @@ class GapBarrier
 			ls_end = int(round(scan_beams*left_beam_angle/(2*M_PI)));
 
 			//TODO: ADD CAMERA
-
+			std::vector<float> fused_ranges= data->ranges;
 			if(use_camera)
 			{
 				if(cv_image_data_defined)
@@ -676,16 +676,21 @@ class GapBarrier
 
 
 			//pre-processing
+
+			/* Old code
 			std::vector<double> double_data; double value;
 			for(int i =0; i < int(data->ranges.size()); ++i)
             {
 				value = static_cast<double>(data->ranges[i]);
 				double_data.push_back(value);
 			}
+			*/
+
+
 			// std::transform(data->ranges.begin(), data->ranges.end(), std::back_inserter(double_data),[](float value)
 			// {return static_cast<double>(value); });
 
-			std::pair<std::vector<std::vector<double>>, std::vector<double>> lidar_preprocess = preprocess_lidar(double_data);
+			std::pair<std::vector<std::vector<double>>, std::vector<double>> lidar_preprocess = preprocess_lidar(fused_ranges);
 
 
 			std::vector<std::vector<double>> proc_ranges = lidar_preprocess.first;
@@ -780,7 +785,7 @@ class GapBarrier
                 {
 					obs_index = (start_indx_l + k*index_l) % scan_beams;
 
-					double obs_range = static_cast<double>(data->ranges[obs_index]);
+					double obs_range = static_cast<double>(fused_ranges[obs_index]);
 					
 
 					if(obs_range <= max_lidar_range_opt)
@@ -810,7 +815,7 @@ class GapBarrier
 				for(int k = 0; k < n_pts_r; ++k)
                 {
 					obs_index = (start_indx_r+k*index_r) % scan_beams;
-					double obs_range = static_cast<double>(data->ranges[obs_index]);
+					double obs_range = static_cast<double>(fused_ranges[obs_index]);
 
 					if(obs_range <= max_lidar_range_opt) 
                     {
