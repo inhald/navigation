@@ -268,9 +268,10 @@ class GapBarrier
 		//Realsense D435 has no confidence data
 		void confidenceCallback(const sensor_msgs::ImageConstPtr & data)
 		{
+			/*
 			cv::Mat cv_image=(cv_bridge::toCvCopy(data,data->encoding))->image; 
-			auto grades= cv::bitwise_and(cv_image >> 4, 0x0f);
-
+			auto grades= cv::bitwise_and(cv_image >> 4, cv::Scalar(0x0f));
+			*/
 
 
 
@@ -381,7 +382,7 @@ class GapBarrier
 					index2 = int(i*ranges.size()/k1-j);
 					if(index2 < 0) index2 += ranges.size();
 
-					s_range += std::min(ranges[index1], max_lidar_range) + std::min(ranges[index2], max_lidar_range);
+					s_range += std::min(ranges[index1], (float)max_lidar_range) + std::min(ranges[index2], (float)max_lidar_range);
 
 				}
 				data2[i] = s_range;
