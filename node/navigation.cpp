@@ -27,6 +27,7 @@
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/CameraInfo.h>
 #include  <opencv2/core.hpp>
+#include <opencv2/opencv.hpp>
 
 //#include <fstream>
 
@@ -180,6 +181,8 @@ class GapBarrier
 		xt::xarray<int> cv_sample_cols_raw;
 
 		rs2::pipeline pipe;
+		
+
 
 
 
@@ -255,6 +258,8 @@ class GapBarrier
 			cv_rows=intrinsics.height;
 			cv_cols=intrinsics.width;
 
+			//define pixels that will be sampled in each row and column, spaced evenly by linspace function
+
 			cv_sample_rows_raw= xt::linspace<int>(100, cv_rows-1, num_cv_sample_rows);
 			cv_sample_cols_raw= xt::linspace<int>(0, cv_cols-1, num_cv_sample_cols);
 
@@ -263,6 +268,11 @@ class GapBarrier
 		//Realsense D435 has no confidence data
 		void confidenceCallback(const sensor_msgs::ImageConstPtr & data)
 		{
+			cv::Mat cv_image=(cv_bridge::toCvCopy(data,data->encoding))->image; 
+			auto grades= cv::bitwise_and(cv_image >> 4, 0x0f);
+
+
+
 
 		}
 
@@ -295,11 +305,12 @@ class GapBarrier
 					{
 						continue;
 					}
-					//2 convert pixel to xyz coordinate in space
+					//2 convert pixel to xyz coordinate in space using camera intrinsics, pixel coords, and depth info
 					std::vector<float> cv_point(3); 
 					float pixel[2] = {col, row};
 					rs2_deproject_pixel_to_point(cv_point.data(), &intrinsics, pixel, depth);
 
+					//xyz points in 3D space, process and combine with lidar data
 					float cv_coordx=cv_point[0];
 					float cv_coordy=cv_point[1];
 					float cv_coordz=cv_point[2];
@@ -654,6 +665,14 @@ class GapBarrier
 			ls_end = int(round(scan_beams*left_beam_angle/(2*M_PI)));
 
 			//TODO: ADD CAMERA
+
+			if(use_camera)
+			{
+				if(cv_image_data_defined)
+				{
+					augment_camera(fused_ranges);
+				}
+			}	
 
 
 			//pre-processing
@@ -1036,10 +1055,6 @@ class GapBarrier
             if(use_camera)
             {
 				pipe.start();
-				
-				depth_img=nodeHandler.subscribe(depth_image_topic,1, &GapBarrier::imageDepth_callback,this);
-				depth_info=nodeHandler.subscribe(depth_info_topic,1, &GapBarrier::imageDepthInfo_callback,this);
-				depth_img_confidence=nodeHandler.subscribe("/camera/confidence/image_rect_raw",1, &GapBarrier::confidenceCallback, this);
 
 				cv_ranges_msg= sensor_msgs::LaserScan(); //call constructor
 				cv_ranges_msg.header.frame_id= "laser";
@@ -1052,8 +1067,9 @@ class GapBarrier
 
 				cv_ranges_pub=nodeHandler.advertise<sensor_msgs::LaserScan>(cv_ranges_topic,1);
 				
-				
-
+				depth_img=nodeHandler.subscribe(depth_image_topic,1, &GapBarrier::imageDepth_callback,this);
+				depth_info=nodeHandler.subscribe(depth_info_topic,1, &GapBarrier::imageDepthInfo_callback,this);
+				depth_img_confidence=nodeHandler.subscribe("/camera/confidence/image_rect_raw",1, &GapBarrier::confidenceCallback, this);
 
             }
             

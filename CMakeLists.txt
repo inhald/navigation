@@ -25,7 +25,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 find_package(Eigen3 REQUIRED)
 find_package(xtensor CONFIG REQUIRED)
 find_package(OpenCV 4 REQUIRED)
-
+find_package(realsense2 REQUIRED)
 ######################################
 # Compile the library >
 ######################################
@@ -34,7 +34,7 @@ find_package(OpenCV 4 REQUIRED)
 include_directories(include ${EIGEN_3_INCLUDE_DIRS} ${xtensor_INCLUDE_DIRS})
 file(GLOB SRC_FILES src/*.cpp)
 add_library(${PROJECT_NAME} ${SRC_FILES})
-target_link_libraries(${PROJECT_NAME} ${LIBS} xtensor)
+target_link_libraries(${PROJECT_NAME} ${LIBS} xtensor realsense2)
 
 set(LIBS ${LIBS} ${PROJECT_NAME})
 
@@ -81,6 +81,7 @@ if(DEFINED CATKIN_DEVEL_PREFIX)
     std_msgs
     nav_msgs
     sensor_msgs
+    geometry_msgs
     )
 
 
@@ -103,6 +104,7 @@ if(DEFINED CATKIN_DEVEL_PREFIX)
   )
 
 
+
   
 
   # Add the nodes
@@ -113,6 +115,10 @@ if(DEFINED CATKIN_DEVEL_PREFIX)
       target_link_libraries(${_node_name} ${LIBS})
       add_dependencies(${_node_name} f1tenth_simulator_generate_messages_cpp)
   endforeach()
+
+  find_library(QUADPROGPP_LIBRARIES NAMES quadprog)
+  find_path(QUADPROGPP_INCLUDE_DIR NAMES QuadProg++.hh)
+  target_link_libraries(navigation ${QUADPROGPP_LIBRARIES})
 
 
 
