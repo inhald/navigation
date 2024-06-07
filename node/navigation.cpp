@@ -43,6 +43,7 @@
 #include <QuadProg++.hh>
 
 #include <xtensor/xarray.hpp>
+#include <xtensor/xio.hpp> 
 
 
 
@@ -117,7 +118,7 @@ class GapBarrier
 		
 		//Camera Setup
 
-		static auto const intrinsics;
+		rs2_intrinsics intrinsics;
 		bool intrinsics_defined;
 		sensor_msgs::Image cv_image_data;
 		bool cv_image_data_defined;
@@ -175,8 +176,8 @@ class GapBarrier
 		ros::Subscriber depth_img_confidence;
 		sensor_msgs::LaserScan cv_ranges_msg;
 		int cv_rows, cv_cols;
-		xtensor::xarray<int> cv_sample_rows_raw;
-		xtensor::xarray<int> cv_sample_cols_raw;
+		xt::xarray<int> cv_sample_rows_raw;
+		xt::xarray<int> cv_sample_cols_raw;
 
 		rs2::pipeline pipe;
 
@@ -230,12 +231,12 @@ class GapBarrier
 			if(intrinsics_defined){ return; }
 
 			intrinsics= pipe.get_active_profile().get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>().get_intrinsics();
-            intrinsics.width = cameraInfo->width
-            intrinsics.height = cameraInfo->height
-            intrinsics.ppx = cameraInfo->K[2]
-            intrinsics.ppy = cameraInfo->K[5]
-            intrinsics.fx = cameraInfo->K[0]
-            intrinsics.fy = cameraInfo->K[4]
+            intrinsics.width = cameraInfo->width;
+            intrinsics.height = cameraInfo->height;
+            intrinsics.ppx = cameraInfo->K[2];
+            intrinsics.ppy = cameraInfo->K[5];
+            intrinsics.fx = cameraInfo->K[0];
+            intrinsics.fy = cameraInfo->K[4];
             if (cameraInfo->distortion_model == "plumb_bob") 
 			{
 				intrinsics.model = RS2_DISTORTION_BROWN_CONRADY;   
@@ -265,7 +266,7 @@ class GapBarrier
 
 		}
 
-		void augment_camera(std::vector<double> lidar_ranges)
+		void augment_camera(std::vector<float> lidar_ranges)
 		{
 			cv::Mat cv_image=(cv_bridge::toCvCopy(cv_image_data,cv_image_data.encoding))->image;
 			//type is cv_bridge::CvImage pointer, arrow operator will return
@@ -295,17 +296,18 @@ class GapBarrier
 						continue;
 					}
 					//2 convert pixel to xyz coordinate in space
-					std::vector<double> cv_point(3); 
-					rs2::rs2_deproject_pixel_to_point(cv_point.data(), &intrinsics, (float*)&col, (float*)&row, &depth);
+					std::vector<float> cv_point(3); 
+					float pixel[2] = {col, row};
+					rs2_deproject_pixel_to_point(cv_point.data(), &intrinsics, pixel, depth);
 
-					double cv_coordx=cv_point[0];
-					double cv_coordy=cv_point[1];
-					double cv_coordz=cv_point[2];
+					float cv_coordx=cv_point[0];
+					float cv_coordy=cv_point[1];
+					float cv_coordz=cv_point[2];
 
 					imu_pitch=0;
 					imu_roll=0;
 
-					double cv_coordy_s = -1*cv_coordx*std::sin(.imu_pitch) + cv_coordy*std::cos(imu_pitch)*std::cos(imu_roll) 
+					float cv_coordy_s = -1*cv_coordx*std::sin(imu_pitch) + cv_coordy*std::cos(imu_pitch)*std::cos(imu_roll) 
 					+ cv_coordz *std::cos(imu_pitch)*std::sin(imu_roll);
 
 					if( cv_coordy_s > 0.5*camera_height || cv_coordy_s < -2.5*camera_height)
@@ -316,19 +318,20 @@ class GapBarrier
 
 					//3. Overwrite Lidar Points with Camera Points taking into account dif frames of ref
 
-					double lidar_coordx = -(cv_coordz+cv_distance_to_lidar);
-                	double lidar_coordy = cv_coordx;
-					double cv_range_temp = std::pow(std::pow(lidar_coordx,2)+ std::pow(lidar_coordy,2),0.5);
+					float lidar_coordx = -(cv_coordz+cv_distance_to_lidar);
+                	float lidar_coordy = cv_coordx;
+					float cv_range_temp = std::pow(std::pow(lidar_coordx,2)+ std::pow(lidar_coordy,2),0.5);
 					//(coordx^2+coordy^2)^0.5
 
-					double beam_index= std::floor(scan_beams*std::atan2(lidar_coordy, lidar_coordx)/(2*M_PI));
-					lidar_range = lidar_ranges[beam_index];
+					float beam_index= std::floor(scan_beams*std::atan2(lidar_coordy, lidar_coordx)/(2*M_PI));
+					float lidar_range = lidar_ranges[beam_index];
 					lidar_ranges[beam_index] = std::min(lidar_range, cv_range_temp);
 
-					ros::Time current_time= ros::Time::now();
+					
 				}
 			}
-			cv_ranges_msg.header.stamp=current_time.toSec();
+			ros::Time current_time= ros::Time::now();
+			cv_ranges_msg.header.stamp=current_time;
 			cv_ranges_msg.ranges=lidar_ranges;
 
 			cv_ranges_pub.publish(cv_ranges_msg);
