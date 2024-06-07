@@ -274,6 +274,8 @@ class GapBarrier
 			//use to debug
 			bool assert=( (cv_rows==cv_image.rows) && (cv_cols==cv_image.cols) );
 
+			std::cout << "Augment Camera Assert = " << assert;
+
 
 			//1. Obtain pixel and depth
 			
