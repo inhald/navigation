@@ -2,6 +2,16 @@ cmake_minimum_required(VERSION 3.1)
 
 project(f1tenth_simulator)
 
+#set vcpkg toolchain file in order to import xtensor package via vcpkg package manager.
+if(DEFINED ENV{VCPKG_ROOT})
+    set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+        CACHE STRING "Vcpkg toolchain file")
+endif()
+set(xtensor_DIR "$ENV{VCPKG_ROOT}/installed/arm64-linux/share/xtensor")
+set(xtl_DIR "$ENV{VCPKG_ROOT}/installed/arm64-linux/share/xtl")
+set(nlohmann_json_DIR "$ENV{VCPKG_ROOT}/installed/arm64-linux/share/nlohmann_json")
+#set(nlohmann-json_DIR "$ENV{VCPKG_ROOT}/installed/arm64-linux/share/nlohmann-json")
+
 set(CMAKE_CXX_STANDARD 11)
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -12,17 +22,20 @@ set(CMAKE_CXX_FLAGS "-Wall -Wextra")
 set(CMAKE_CXX_FLAGS_DEBUG "-g") 
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
-find_package(Eigen3)
-
+find_package(Eigen3 REQUIRED)
+find_package(xtensor CONFIG REQUIRED)
+find_package(OpenCV 4 REQUIRED)
+find_package(realsense2 REQUIRED)
 ######################################
 # Compile the library >
 ######################################
 
 # Add includes
-include_directories(include)
+include_directories(include ${EIGEN_3_INCLUDE_DIRS} ${xtensor_INCLUDE_DIRS})
 file(GLOB SRC_FILES src/*.cpp)
 add_library(${PROJECT_NAME} ${SRC_FILES})
-target_link_libraries(${PROJECT_NAME} ${LIBS})
+target_link_libraries(${PROJECT_NAME} ${LIBS} xtensor realsense2)
+
 set(LIBS ${LIBS} ${PROJECT_NAME})
 
 # Install the library to CMAKE_INSTALL_PREFIX
@@ -59,16 +72,20 @@ if(DEFINED CATKIN_DEVEL_PREFIX)
 
     interactive_markers
     visualization_msgs
+    cv_bridge
+    image_transport
 
     std_msgs
-    message_generation
-    )
+    message_generation)
+    
+
 
   generate_messages(
     DEPENDENCIES
     std_msgs
     nav_msgs
     sensor_msgs
+    geometry_msgs
     )
 
 
@@ -78,14 +95,18 @@ if(DEFINED CATKIN_DEVEL_PREFIX)
   catkin_package(
       INCLUDE_DIRS include
       LIBRARIES ${PROJECT_NAME}
-      CATKIN_DEPENDS message_runtime
+      CATKIN_DEPENDS 
+      message_runtime
+      cv_bridge
+      image_transport    
+
+      		     
   )
   set(LIBS ${LIBS} ${catkin_LIBRARIES})
-  include_directories(include ${catkin_INCLUDE_DIRS}
-    /usr/local/include/eigen-quadprog
+  include_directories(include ${catkin_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS}
     /usr/local/include/QuadProg++
-  
   )
+
 
 
   # Add the nodes
@@ -105,6 +126,12 @@ if(DEFINED CATKIN_DEVEL_PREFIX)
   find_library(QUADPROGPP_LIBRARIES NAMES quadprog)
   find_path(QUADPROGPP_INCLUDE_DIR NAMES QuadProg++.hh)
   target_link_libraries(navigation ${QUADPROGPP_LIBRARIES})
+
+
+  find_library(QUADPROGPP_LIBRARIES NAMES quadprog)
+  find_path(QUADPROGPP_INCLUDE_DIR NAMES QuadProg++.hh)
+  target_link_libraries(navigation ${QUADPROGPP_LIBRARIES})
+
 
 
   # Install the library

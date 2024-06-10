@@ -685,7 +685,6 @@ class GapBarrier:
                     if self.stopped_time >= self.stop_time2: 
                         self.drive_state = "turn"
                         self.time_ref = 0.0
-
             else:
                  self.time_ref = 0            
 

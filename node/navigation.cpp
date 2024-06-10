@@ -1,6 +1,8 @@
 #define _USE_MATH_DEFINES //M_PI
 
 #include "ros/ros.h"
+
+#include "std_msgs/Bool.h"
 #include "std_msgs/String.h"
 #include "std_msgs/Int32MultiArray.h"
 #include "sensor_msgs/LaserScan.h" //receive msgs from lidar
@@ -10,19 +12,6 @@
 
 #include "sensor_msgs/Image.h" // ros image
 
-//CV
-// #include "opencv2/highgui/highgui.hpp"
-// #include "opencv2/imgproc/imgproc.hpp"
-// #include "opencv2/core.hpp"
-// #include "opencv2/opencv.hpp"
-// #include "image_transport/image_transport.h"
-// #include "cv_bridge/cv_bridge.h"
-// #include "sensor_msgs/Image.h"
-// #include "sensor_msgs/CameraInfo.h"
-// #include "librealsense2/rs.hpp"
-
-
-
 #include <tf/tf.h> //Quaternions
 
 #include "ackermann_msgs/AckermannDriveStamped.h" //Ackermann Steering
@@ -30,6 +19,15 @@
 #include "nav_msgs/Odometry.h" //Odometer
 
 
+//CV includes
+#include <cv_bridge/cv_bridge.h>
+#include <librealsense2/rs.hpp>
+#include <sensor_msgs/Image.h>
+#include <sensor_msgs/CameraInfo.h>
+#include  <opencv2/core.hpp>
+#include <opencv2/opencv.hpp>
+
+//standard and external
 #include <stdio.h>
 #include <math.h> //cosf
 #include <cmath> //M_PI, round
@@ -37,10 +35,9 @@
 #include <algorithm>
 
 #include <QuadProg++.hh>
-// #include <iomanip>
+#include <xtensor/xarray.hpp>
+#include <xtensor/xio.hpp> 
 
-// std_msgs::String msg;
-// std::stringstream ss;
 
 class GapBarrier {
 	private:
@@ -53,6 +50,17 @@ class GapBarrier {
 		ros::Subscriber imu;
 		ros::Subscriber mux;
 		ros::Subscriber odom;
+		
+		//More CV data members, used if use_camera is true
+		ros::Subscriber depth_img;
+		ros::Subscriber depth_info;
+		ros::Subscriber depth_img_confidence;
+		sensor_msgs::LaserScan cv_ranges_msg;
+		int cv_rows, cv_cols;
+		xt::xarray<int> cv_sample_rows_raw;
+		xt::xarray<int> cv_sample_cols_raw;
+
+		rs2::pipeline pipe;
 
 
 		
@@ -60,6 +68,8 @@ class GapBarrier {
 		ros::Publisher lidar_pub;
 		ros::Publisher marker_pub;
 		ros::Publisher driver_pub;
+		ros::Publisher cv_ranges_pub;
+		
 
 		
 		//topics
@@ -118,10 +128,26 @@ class GapBarrier {
 
 		//camera and cv
 		int use_camera;
-		// bool intrinsics_defined;
-		// rs2_intrinsics intrinsics;
-		// sensor_msgs::Image cv_image_data;
-		// bool cv_image_data_defined; 
+		double min_cv_range;
+        double max_cv_range;
+        double cv_distance_to_lidar;
+        double num_cv_sample_rows;
+        double num_cv_sample_cols;
+
+        double cv_ground_angle;
+        double cv_lidar_range_max_diff;
+        double camera_height;
+        double cv_real_to_theo_ground_range_ratio;
+        double cv_real_to_theo_ground_range_ratio_near_horizon;
+        double cv_ground_range_decay_row;
+        double cv_pitch_angle_hardcoded;
+
+
+		rs2_intrinsics intrinsics;
+		bool intrinsics_defined;
+		sensor_msgs::Image cv_image_data;
+		bool cv_image_data_defined;
+
 		
 
 	public:
@@ -209,8 +235,24 @@ class GapBarrier {
 			nav_active = 0;
 
 			//cv
+			ros::param::get("~min_cv_range", min_cv_range);
+            ros::param::get("~max_cv_range", max_cv_range);
+            ros::param::get("~cv_distance_to_lidar", cv_distance_to_lidar);
+            ros::param::get("~num_cv_sample_rows", num_cv_sample_rows);
+            ros::param::get("~num_cv_sample_cols",num_cv_sample_cols);
+
+            ros::param::get("~cv_ground_angle", cv_ground_angle);
+            ros::param::get("~cv_lidar_range_max_diff",cv_lidar_range_max_diff);
+            ros::param::get("~camera_height",camera_height);
+            ros::param::get("~cv_real_to_theo_ground_range_ratio",cv_real_to_theo_ground_range_ratio);
+            ros::param::get("~cv_real_to_theo_ground_range_ratio_near_horizon",cv_real_to_theo_ground_range_ratio_near_horizon);
+            ros::param::get("~cv_ground_range_decay_row",cv_ground_range_decay_row);
+            ros::param::get("~cv_pitch_angle_hardcoded",cv_pitch_angle_hardcoded);
 
 
+
+			intrinsics_defined= false;
+        	cv_image_data_defined= false;
 
 			//subscriptions
 			lidar = nf.subscribe("/scan",1, &GapBarrier::lidar_callback, this);
@@ -227,14 +269,26 @@ class GapBarrier {
 			driver_pub = nf.advertise<ackermann_msgs::AckermannDriveStamped>(drive_topic, 1);
 
 
-			// if(use_camera){
+			if(use_camera)
+			{
+				pipe.start();
+
+				cv_ranges_msg= sensor_msgs::LaserScan(); //call constructor
+				cv_ranges_msg.header.frame_id= "laser";
+				cv_ranges_msg.angle_increment= this->ls_ang_inc; 
+				cv_ranges_msg.time_increment = 0;
+				cv_ranges_msg.range_min = 0;
+				cv_ranges_msg.range_max = this->max_lidar_range;
+				cv_ranges_msg.angle_min = 0;
+				cv_ranges_msg.angle_max = 2*M_PI;
+
+				cv_ranges_pub=nf.advertise<sensor_msgs::LaserScan>(cv_ranges_topic,1);
 				
+				depth_img=nf.subscribe(depth_image_topic,1, &GapBarrier::imageDepth_callback,this);
+				depth_info=nf.subscribe(depth_info_topic,1, &GapBarrier::imageDepthInfo_callback,this);
+				depth_img_confidence=nf.subscribe("/camera/confidence/image_rect_raw",1, &GapBarrier::confidenceCallback, this);
 
-
-			// 	nf.subscribe(depth_image_topic, 1, &GapBarrier::imageDepth_callback, this);
-			// 	// nf.subscribe(depth_info_topic, 1, &GapBarrier::)
-
-			// }
+			}
 
 		}
 
@@ -262,7 +316,7 @@ class GapBarrier {
 		}
 
 
-		int arg_max(std::vector<double> ranges){
+		int arg_max(std::vector<float> ranges){
 
 			int idx = 0;
 
@@ -283,16 +337,6 @@ class GapBarrier {
 
 		/// ---------------------- MAIN FUNCTIONS ----------------------
 
-		// void imageDepth_callback(const sensor_msgs::ImageConstPtr & data){
-			
-		// 	if(intrinsics_defined){
-
-		// 		cv_image_data = *data;
-		// 		cv_image_data_defined = true;
-		// 	}
-
-
-		// }
 
 		void odom_callback(const nav_msgs::OdometryConstPtr& odom_msg){
 			vel = odom_msg->twist.twist.linear.x;
@@ -317,10 +361,158 @@ class GapBarrier {
 		}
 
 
-		std::pair <std::vector<std::vector<double>>, std::vector<double>>preprocess_lidar(std::vector<double> ranges){
+		
+		void imageDepth_callback( const sensor_msgs::ImageConstPtr & data)
+		{
+			if(intrinsics_defined)
+			{
+				cv_image_data= *data; //dereference pointer, copy data
+				cv_image_data_defined=true;
+			}
 
-			std::vector<std::vector<double>> data(ls_len_mod,std::vector<double>(2));
-			std::vector<double> data2(100);
+		}
+
+		void imageDepthInfo_callback(const sensor_msgs::CameraInfoConstPtr & cameraInfo)
+		{
+			//intrinsics is a struct of the form:
+			/*
+			int           width; 
+			int           height
+			float         ppx;   
+			float         ppy;
+			float         fx;
+			float         fy;   
+			rs2_distortion model;
+			float coeffs[5];
+			*/
+			if(intrinsics_defined){ return; }
+
+			intrinsics= pipe.get_active_profile().get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>().get_intrinsics();
+            intrinsics.width = cameraInfo->width;
+            intrinsics.height = cameraInfo->height;
+            intrinsics.ppx = cameraInfo->K[2];
+            intrinsics.ppy = cameraInfo->K[5];
+            intrinsics.fx = cameraInfo->K[0];
+            intrinsics.fy = cameraInfo->K[4];
+            if (cameraInfo->distortion_model == "plumb_bob") 
+			{
+				intrinsics.model = RS2_DISTORTION_BROWN_CONRADY;   
+			}
+               
+            else if (cameraInfo->distortion_model == "equidistant")
+			{
+				intrinsics.model = RS2_DISTORTION_KANNALA_BRANDT4;
+			}
+            for(int i=0; i<5; i++)
+			{
+				intrinsics.coeffs[i]=cameraInfo->D[i];
+			}
+			intrinsics_defined=true;
+
+			cv_rows=intrinsics.height;
+			cv_cols=intrinsics.width;
+
+			//define pixels that will be sampled in each row and column, spaced evenly by linspace function
+
+			cv_sample_rows_raw= xt::linspace<int>(100, cv_rows-1, num_cv_sample_rows);
+			cv_sample_cols_raw= xt::linspace<int>(0, cv_cols-1, num_cv_sample_cols);
+
+
+		}
+		//Realsense D435 has no confidence data
+		void confidenceCallback(const sensor_msgs::ImageConstPtr & data)
+		{
+			/*
+			cv::Mat cv_image=(cv_bridge::toCvCopy(data,data->encoding))->image; 
+			auto grades= cv::bitwise_and(cv_image >> 4, cv::Scalar(0x0f));
+			*/
+
+
+
+		}
+
+		void augment_camera(std::vector<float> lidar_ranges)
+		{
+			cv::Mat cv_image=(cv_bridge::toCvCopy(cv_image_data,cv_image_data.encoding))->image;
+			//type is cv_bridge::CvImage pointer, arrow operator will return
+			//opencv Mat 2D array .
+
+			//use to debug
+			bool assert=( (cv_rows==cv_image.rows) && (cv_cols==cv_image.cols) );
+
+			std::cout << "Augment Camera Assert = " << assert;
+
+
+			//1. Obtain pixel and depth
+			
+			for(int i=0 ; i < cv_sample_cols_raw.size() ; i++)
+			{
+				int col= cv_sample_cols_raw[i];
+
+				for(int j=0; j < cv_sample_rows_raw.size() ; j++)
+				{
+					int row=cv_sample_rows_raw[j];
+
+
+					int depth= (cv_image.ptr<int>(row)[col])/1000;
+
+					if(depth > max_cv_range or depth < min_cv_range)
+					{
+						continue;
+					}
+					//2 convert pixel to xyz coordinate in space using camera intrinsics, pixel coords, and depth info
+					std::vector<float> cv_point(3); 
+					float pixel[2] = {(float) col, (float) row};
+					rs2_deproject_pixel_to_point(cv_point.data(), &intrinsics, pixel, depth);
+
+					//xyz points in 3D space, process and combine with lidar data
+					float cv_coordx=cv_point[0];
+					float cv_coordy=cv_point[1];
+					float cv_coordz=cv_point[2];
+
+					imu_pitch=0;
+					imu_roll=0;
+
+					float cv_coordy_s = -1*cv_coordx*std::sin(imu_pitch) + cv_coordy*std::cos(imu_pitch)*std::cos(imu_roll) 
+					+ cv_coordz *std::cos(imu_pitch)*std::sin(imu_roll);
+
+					if( cv_coordy_s > 0.5*camera_height || cv_coordy_s < -2.5*camera_height)
+					{
+						continue;
+					}
+
+
+					//3. Overwrite Lidar Points with Camera Points taking into account dif frames of ref
+
+					float lidar_coordx = -(cv_coordz+cv_distance_to_lidar);
+                	float lidar_coordy = cv_coordx;
+					float cv_range_temp = std::pow(std::pow(lidar_coordx,2)+ std::pow(lidar_coordy,2),0.5);
+					//(coordx^2+coordy^2)^0.5
+
+					float beam_index= std::floor(scan_beams*std::atan2(lidar_coordy, lidar_coordx)/(2*M_PI));
+					float lidar_range = lidar_ranges[beam_index];
+					lidar_ranges[beam_index] = std::min(lidar_range, cv_range_temp);
+
+					
+				}
+			}
+			ros::Time current_time= ros::Time::now();
+			cv_ranges_msg.header.stamp=current_time;
+			cv_ranges_msg.ranges=lidar_ranges;
+
+			cv_ranges_pub.publish(cv_ranges_msg);
+			
+
+		}
+
+
+
+
+
+		std::pair <std::vector<std::vector<float>>, std::vector<float>>preprocess_lidar(std::vector<float> ranges){
+
+			std::vector<std::vector<float>> data(ls_len_mod,std::vector<float>(2));
+			std::vector<float> data2(100);
 
 			//sets distance to zero for obstacles in safe distance, and max_lidar_range for those that are far.
 			for(int i =0; i < ls_len_mod; ++i){
@@ -331,7 +523,7 @@ class GapBarrier {
 
 
 			int k1 = 100; int k2 = 40;
-			double s_range = 0; int index1, index2;
+			float s_range = 0; int index1, index2;
 			
 			//moving window
 			for(int i =0; i < k1; ++i){
@@ -344,17 +536,17 @@ class GapBarrier {
 					index2 = int(i*ranges.size()/k1-j);
 					if(index2 < 0) index2 += ranges.size();
 
-					s_range += std::min(ranges[index1], max_lidar_range) + std::min(ranges[index2], max_lidar_range);
+					s_range += std::min(ranges[index1], (float) max_lidar_range) + std::min(ranges[index2], (float)max_lidar_range);
 
 				}
-				data2[i] = static_cast<double>(s_range);
+				data2[i] = s_range;
 			}
 
 			return std::make_pair(data,data2);
 			
 		}
 
-		std::pair<int, int> find_max_gap(std::vector<std::vector<double>> proc_ranges){
+		std::pair<int, int> find_max_gap(std::vector<std::vector<float>> proc_ranges){
 			int j =0; int str_indx = 0; int end_indx = 0; 
 			int str_indx2 = 0; int end_indx2 = 0;
 			int range_sum = 0; int range_sum_new = 0;
@@ -386,9 +578,9 @@ class GapBarrier {
 		}
 
 
-		double find_best_point(int start_i, int end_i, std::vector<std::vector<double>> proc_ranges){
-			double range_sum = 0;
-			double best_heading =0;
+		float find_best_point(int start_i, int end_i, std::vector<std::vector<float>> proc_ranges){
+			float range_sum = 0;
+			float best_heading =0;
 
 
 			for(int i = start_i; i <= end_i; ++i){
@@ -638,29 +830,36 @@ class GapBarrier {
 			ls_str = int(round(scan_beams*right_beam_angle/(2*M_PI)));
 			ls_end = int(round(scan_beams*left_beam_angle/(2*M_PI)));
 
-			//TODO: ADD CAMERA
-
-			// if (!nav_active) {
-			// 	drive_state = "normal";
-			// 	return;
-			// }
+	
+			if (!nav_active) {
+				drive_state = "normal";
+				return;
+			}
 
 
 
 			//pre-processing
-			std::vector<double> double_data; double value;
-			for(int i =0; i < int(data->ranges.size()); ++i){
-				value = static_cast<double>(data->ranges[i]);
-				double_data.push_back(value);
-			}
+			// std::vector<double> double_data; double value;
+			// for(int i =0; i < int(data->ranges.size()); ++i){
+			// 	value = static_cast<double>(data->ranges[i]);
+			// 	double_data.push_back(value);
+			// }
 			// std::transform(data->ranges.begin(), data->ranges.end(), std::back_inserter(double_data),[](float value)
 			// {return static_cast<double>(value); });
 
-			std::pair<std::vector<std::vector<double>>, std::vector<double>> lidar_preprocess = preprocess_lidar(double_data);
+
+			std::vector<float> fused_ranges = data->ranges;
+
+			if(use_camera)
+			{
+				if(cv_image_data_defined){ augment_camera(fused_ranges); }
+			}
+
+			std::pair<std::vector<std::vector<float>>, std::vector<float>> lidar_preprocess = preprocess_lidar(fused_ranges);
 
 
-			std::vector<std::vector<double>> proc_ranges = lidar_preprocess.first;
-			std::vector<double> mod_ranges = lidar_preprocess.second;
+			std::vector<std::vector<float>> proc_ranges = lidar_preprocess.first;
+			std::vector<float> mod_ranges = lidar_preprocess.second;
 			// publish_lidar(mod_ranges);
 
 			// std::stringstream ss; 
@@ -708,12 +907,12 @@ class GapBarrier {
 				index_l = int(round((angle_bl-angle_al)/(data->angle_increment*n_pts_l)));
 				index_r = int(round((angle_ar-angle_br)/(data->angle_increment*n_pts_r)));
 
-				double mod_angle_al = angle_al + heading_angle;
+				float mod_angle_al = angle_al + heading_angle;
 
 				if(mod_angle_al > 2*M_PI) mod_angle_al -= 2*M_PI;
 				else if (mod_angle_al < 0) mod_angle_al += 2*M_PI;
 
-				double mod_angle_br = angle_br + heading_angle;
+				float mod_angle_br = angle_br + heading_angle;
 
 				if(mod_angle_br > 2*M_PI) mod_angle_br -= 2*M_PI;
 				else if (mod_angle_br < 0) mod_angle_br += 2*M_PI;
@@ -751,7 +950,7 @@ class GapBarrier {
 				for(int k = 0; k < n_pts_l; ++k){
 					obs_index = (start_indx_l + k*index_l) % scan_beams;
 
-					double obs_range = static_cast<double>(data->ranges[obs_index]);
+					double obs_range = static_cast<double>(fused_ranges[obs_index]);
 					
 
 					if(obs_range <= max_lidar_range_opt){
@@ -779,7 +978,7 @@ class GapBarrier {
 
 				for(int k = 0; k < n_pts_r; ++k){
 					obs_index = (start_indx_r+k*index_r) % scan_beams;
-					double obs_range = static_cast<double>(data->ranges[obs_index]);
+					double obs_range = static_cast<double>(fused_ranges[obs_index]);
 
 					if(obs_range <= max_lidar_range_opt) {
 						if(k_obs == 0){
@@ -792,14 +991,9 @@ class GapBarrier {
 							x_obs = -obs_range*cos(mod_angle_br+k*index_r*data->angle_increment);
 							y_obs = -obs_range*sin(mod_angle_br+k*index_r*data->angle_increment);
 
-							// std::stringstream ss;
-							// std_msgs::String msg;
 							std::vector<double> obstacles = {x_obs, y_obs};
 							obstacle_points_r.push_back(obstacles);
-							// ss << x_obs << " " << y_obs;
-							// ss << " ";
-							// ss << obstacle_points_r[k_obs][0] << " " << obstacle_points_r[k_obs][1]; msg.data = ss.str();
-							// ROS_INFO("%s", msg.data.c_str()); msg.data.clear();
+	
 						}
 
 						k_obs += 1;
@@ -814,7 +1008,6 @@ class GapBarrier {
 				std::vector<double> wl = {0.0, 0.0};
 				std::vector<double> wr = {0.0, 0.0};
 
-				// ROS_INFO("hello");
 
 				getWalls(obstacle_points_l, obstacle_points_r, wl0, wr0, alpha, wr, wl);
 
@@ -904,7 +1097,7 @@ class GapBarrier {
 				idx1 = -sec_len+int(scan_beams/2); idx2 = sec_len + int(scan_beams/2);
 
 				for(int i = idx1; i <= idx2; ++i){
-					if(data->ranges[i] < min_distance) min_distance = data->ranges[i];
+					if(fused_ranges[i] < min_distance) min_distance = fused_ranges[i];
 				}
 
 				velocity_scale = 1 - exp(-std::max(min_distance-stop_distance,0.0)/stop_distance_decay);
@@ -944,7 +1137,7 @@ class GapBarrier {
 					else dtheta -= 4*M_PI;
 				}
 
-				min_distance = *std::min_element(data->ranges.begin(), data->ranges.begin()+sec_len);
+				min_distance = *std::min_element(fused_ranges.begin(), fused_ranges.begin()+sec_len);
 				velocity_scale =1-exp(-std::max(min_distance - stop_distance, 0.0)/stop_distance_decay);
 
 				delta_d = - equiv_sign(turn_angle)*max_steering_angle;
@@ -976,7 +1169,7 @@ class GapBarrier {
 			}
 			else {
 
-				min_distance = *std::min_element(data->ranges.begin()-sec_len+int(scan_beams/2), data->ranges.begin()+sec_len+int(scan_beams/2));
+				min_distance = *std::min_element(fused_ranges.begin()-sec_len+int(scan_beams/2), fused_ranges.begin()+sec_len+int(scan_beams/2));
 				velocity_scale = 1-exp(-std::max(min_distance-stop_distance, 0.0)/stop_distance_decay);
 
 				delta_d = equiv_sign(turn_angle)*max_steering_angle;

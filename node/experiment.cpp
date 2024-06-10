@@ -5,7 +5,6 @@
 #include <sensor_msgs/Imu.h>
 #include <std_msgs/Int32MultiArray.h>
 #include <tf/transform_broadcaster.h>
-#include <tf/transform_listener.h>
 #include <sensor_msgs/LaserScan.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <geometry_msgs/PoseStamped.h>
@@ -117,6 +116,7 @@ RacecarExperiment() {
     n.getParam("max_accel", max_acceleration);
     n.getParam("max_steering_vel",max_servo_speed);
     n.getParam("driver_smoother_rate",driver_smoother_rate);
+    
  
     // Get odometry and base frame names
     n.getParam("odom_frame", odom_frame);
@@ -185,7 +185,7 @@ RacecarExperiment() {
     void driver_callback(const ackermann_msgs::AckermannDriveStamped & msg) {
         desired_speed = msg.drive.speed;
         desired_steer_ang = msg.drive.steering_angle;
-        desired_speed= speed_to_erpm_gain * desired_speed + speed_to_erpm_offset;
+        desired_speed=speed_to_erpm_gain * desired_speed + speed_to_erpm_offset;
         desired_steer_ang = steering_angle_to_servo_gain * desired_steer_ang + steering_angle_to_servo_offset;
     }
 

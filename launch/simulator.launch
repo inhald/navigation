@@ -1,7 +1,9 @@
 <?xml version="1.0"?>
 <launch>
   <!-- Listen to messages from joysicks -->
-  <node pkg="joy" name="joy_node" type="joy_node"/>
+  <node pkg="joy" name="joy_node" type="joy_node">
+  <param name="autorepeat_rate" value="2"/>
+  </node>
 
   <!-- Launch a map from the maps folder-->
   <arg name="map" default="$(find f1tenth_simulator)/maps/hallway_w_blocks.yaml"/>

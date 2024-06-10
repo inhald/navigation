@@ -211,4 +211,4 @@ stop_distance_decay: 1.5 #m
 optim_mode: 1
 max_lidar_range_opt: 5.0
 # Determines if RGB-D camera is used
-use_camera: 0
+use_camera: 1
