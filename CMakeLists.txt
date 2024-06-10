@@ -48,10 +48,14 @@ if(DEFINED CATKIN_DEVEL_PREFIX)
     tf2
     tf2_ros
     tf2_geometry_msgs
+    tf
     ackermann_msgs
     nav_msgs
     sensor_msgs
     geometry_msgs
+
+    cv_bridge
+    image_transport
 
     interactive_markers
     visualization_msgs
@@ -77,10 +81,12 @@ if(DEFINED CATKIN_DEVEL_PREFIX)
       CATKIN_DEPENDS message_runtime
   )
   set(LIBS ${LIBS} ${catkin_LIBRARIES})
-  include_directories(include ${catkin_INCLUDE_DIRS})
-
-
+  include_directories(include ${catkin_INCLUDE_DIRS}
+    /usr/local/include/eigen-quadprog
+    /usr/local/include/QuadProg++
   
+  )
+
 
   # Add the nodes
   file(GLOB NODE_SRC_FILES node/*.cpp)
@@ -90,6 +96,16 @@ if(DEFINED CATKIN_DEVEL_PREFIX)
       target_link_libraries(${_node_name} ${LIBS})
       add_dependencies(${_node_name} f1tenth_simulator_generate_messages_cpp)
   endforeach()
+  
+  # include_directories(include ${catkin_INCLUDE_DIRS}
+  # ${Boost_INCLUDE_DIRS}
+  # ${GSTREAMER_INCLUDE_DIRS})
+  # target_link_libraries(navigation tinympc)
+
+  find_library(QUADPROGPP_LIBRARIES NAMES quadprog)
+  find_path(QUADPROGPP_INCLUDE_DIR NAMES QuadProg++.hh)
+  target_link_libraries(navigation ${QUADPROGPP_LIBRARIES})
+
 
   # Install the library
   install(TARGETS ${PROJECT_NAME}
@@ -97,9 +113,12 @@ if(DEFINED CATKIN_DEVEL_PREFIX)
       LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
       RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
   )
+
   install(DIRECTORY include/${PROJECT_NAME}/
       DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
   )
+
+
 endif()
 
 ######################################

@@ -40,4 +40,7 @@
   <run_depend>std_msgs</run_depend>
   <run_depend>image_transport</run_depend>
   <run_depend>message_runtime</run_depend>
+	<run_depend> vesc_driver</run_depend>
+  <run_depend>python3-numpy</run_depend>
+  <run_depend> quadprog </run_depend>
 </package>
