@@ -273,6 +273,8 @@ class GapBarrier {
 			{
 				pipe.start();
 
+				ROS_INFO("hello");
+
 				cv_ranges_msg= sensor_msgs::LaserScan(); //call constructor
 				cv_ranges_msg.header.frame_id= "laser";
 				cv_ranges_msg.angle_increment= this->ls_ang_inc; 
@@ -385,6 +387,8 @@ class GapBarrier {
 			rs2_distortion model;
 			float coeffs[5];
 			*/
+
+			ROS_INFO("hello");
 			if(intrinsics_defined){ return; }
 
 			intrinsics= pipe.get_active_profile().get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>().get_intrinsics();
@@ -437,10 +441,13 @@ class GapBarrier {
 			//type is cv_bridge::CvImage pointer, arrow operator will return
 			//opencv Mat 2D array .
 
+
+			ROS_INFO("hello");
+
 			//use to debug
 			bool assert=( (cv_rows==cv_image.rows) && (cv_cols==cv_image.cols) );
 
-			std::cout << "Augment Camera Assert = " << assert;
+			// std::cout << "Augment Camera Assert = " << assert;
 
 
 			//1. Obtain pixel and depth
@@ -831,10 +838,10 @@ class GapBarrier {
 			ls_end = int(round(scan_beams*left_beam_angle/(2*M_PI)));
 
 	
-			if (!nav_active) {
-				drive_state = "normal";
-				return;
-			}
+			// if (!nav_active) {
+			// 	drive_state = "normal";
+			// 	return;
+			// }
 
 
 
